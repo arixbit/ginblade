@@ -1,3 +1,5 @@
+
+
 # Go Skeleton
 
 This is a clean Go service skeleton extracted from the original project shape.
@@ -39,7 +41,7 @@ make compose-down
 
 ```sh
 cp .env.example .env
-make migrate
+go run ./cmd/migrate
 go run ./cmd/api
 ```
 
