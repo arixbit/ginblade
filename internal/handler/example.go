@@ -21,7 +21,7 @@ func NewExampleHandler(svc *service.ExampleService) *ExampleHandler {
 func (h *ExampleHandler) Create(c *gin.Context) {
 	var req service.CreateExampleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(200, response.BuildValidationErrorResponse(c, err))
+		response.WriteValidationError(c, err)
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h *ExampleHandler) Create(c *gin.Context) {
 func (h *ExampleHandler) List(c *gin.Context) {
 	var req service.ListExamplesReq
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(200, response.BuildValidationErrorResponse(c, err))
+		response.WriteValidationError(c, err)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *ExampleHandler) List(c *gin.Context) {
 func (h *ExampleHandler) EnqueueTask(c *gin.Context) {
 	var req service.EnqueueExampleTaskReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(200, response.BuildValidationErrorResponse(c, err))
+		response.WriteValidationError(c, err)
 		return
 	}
 
