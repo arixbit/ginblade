@@ -3,8 +3,14 @@
 [中文文档](./README.zh-CN.md)
 
 [![CI](https://github.com/arixbit/go-example/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/go-example/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Go](https://img.shields.io/github/go-mod/go-version/arixbit/go-example?label=Go)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/go-example)](https://goreportcard.com/report/github.com/arixbit/go-example)
 [![Version](https://img.shields.io/github/v/tag/arixbit/go-example?label=version)](https://github.com/arixbit/go-example/tags)
+[![Stars](https://img.shields.io/github/stars/arixbit/go-example)](https://github.com/arixbit/go-example)
+[![Forks](https://img.shields.io/github/forks/arixbit/go-example)](https://github.com/arixbit/go-example/fork)
+[![Open Issues](https://img.shields.io/github/issues/arixbit/go-example)](https://github.com/arixbit/go-example/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/arixbit/go-example)](https://github.com/arixbit/go-example/commits)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/go-example/security/dependabot)
 
 An opinionated, runnable Go backend skeleton for services that need clear
 boundaries, independently deployable processes, and a delivery path that can

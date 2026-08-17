@@ -1,7 +1,14 @@
 # Go Skeleton · 中文使用介绍
 
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![CI](https://github.com/arixbit/go-example/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/go-example/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/github/go-mod/go-version/arixbit/go-example?label=Go)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/go-example)](https://goreportcard.com/report/github.com/arixbit/go-example)
 [![Version](https://img.shields.io/github/v/tag/arixbit/go-example?label=version)](https://github.com/arixbit/go-example/tags)
+[![Stars](https://img.shields.io/github/stars/arixbit/go-example)](https://github.com/arixbit/go-example)
+[![Forks](https://img.shields.io/github/forks/arixbit/go-example)](https://github.com/arixbit/go-example/fork)
+[![Open Issues](https://img.shields.io/github/issues/arixbit/go-example)](https://github.com/arixbit/go-example/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/arixbit/go-example)](https://github.com/arixbit/go-example/commits)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/go-example/security/dependabot)
 [English](./README.md)
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要清晰分层、多进程独立部署、且能从本地开发一路验证到 CI 的服务而设计。
