@@ -1,0 +1,57 @@
+# GoReleaser 配置：打 tag 时自动构建二进制并发布 GitHub Release
+# 文档: https://goreleaser.com
+version: 2
+
+project_name: ginblade
+
+builds:
+  - id: api
+    main: ./cmd/api
+    binary: ginblade-api
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+  - id: worker
+    main: ./cmd/worker
+    binary: ginblade-worker
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+  - id: migrate
+    main: ./cmd/migrate
+    binary: ginblade-migrate
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "^Merge pull request"
+      - Merge remote-tracking branch
+
+release:
+  github:
+    owner: arixbit
+    name: ginblade
