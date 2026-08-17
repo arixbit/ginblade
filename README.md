@@ -1,20 +1,27 @@
 # Go Skeleton
 
-This is a clean Go service skeleton extracted from the original project shape.
-Business modules were intentionally removed; the only domain-like code left is
-the `Example` flow used to demonstrate the app layers.
+[![CI](https://github.com/arixbit/go-example/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/go-example/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Version](https://img.shields.io/github/v/tag/arixbit/go-example?label=version)](https://github.com/arixbit/go-example/tags)
 
-## Structure
+An opinionated, runnable Go backend skeleton for services that need clear
+boundaries, independently deployable processes, and a delivery path that can
+be verified from local development through CI.
 
-- `cmd/api`: HTTP API process.
-- `cmd/worker`: Asynq worker process.
-- `cmd/migrate`: minimal GORM migration entrypoint for the example table.
-- `config`: environment loading and typed configuration values.
-- `internal/bootstrap`: process-level resource initialization and lifecycle.
-- `internal`: application wiring, routes, middleware, and example layers.
-- `pkg`: reusable infrastructure helpers, including generic JWT auth.
+## Highlights
 
-## Run with Docker Compose
+- Separate API, Asynq worker, and database migration processes.
+- `handler -> service -> repository` application flow with explicit boundaries.
+- Hand-written dependency injection and centralized resource lifecycle management.
+- Gin, GORM, PostgreSQL, optional Redis and JWT support, and asynchronous tasks.
+- Multi-stage, non-root container image and a complete local Docker Compose stack.
+- Unit, race, integration, lint, and container smoke verification in CI.
+
+Business modules are intentionally kept minimal. The `Example` flow exists to
+show how the layers fit together, not to present a complete product or a
+universal architecture.
+
+## Quick Start
 
 Start Postgres, Redis, migrations, the API, and the worker:
 
@@ -34,6 +41,16 @@ Stop the stack without deleting its data volumes:
 ```sh
 make compose-down
 ```
+
+## Structure
+
+- `cmd/api`: HTTP API process.
+- `cmd/worker`: Asynq worker process.
+- `cmd/migrate`: minimal GORM migration entrypoint for the example table.
+- `config`: environment loading and typed configuration values.
+- `internal/bootstrap`: process-level resource initialization and lifecycle.
+- `internal`: application wiring, routes, middleware, and example layers.
+- `pkg`: reusable infrastructure helpers, including generic JWT auth.
 
 ## Run Locally
 
