@@ -30,25 +30,29 @@ func NewServer(redisOpt asynq.RedisClientOpt) *asynq.Server {
 			"default":  3,
 			"low":      1,
 		},
-		RetryDelayFunc: func(n int, e error, t *asynq.Task) time.Duration {
-			delay := time.Duration(1<<uint(n)) * 5 * time.Second
-			if delay > time.Hour {
-				delay = time.Hour
-			}
-			logger := applog.L()
-			if traceID := task.TraceIDFromPayload(t.Payload()); traceID != "" {
-				logger = logger.With(zap.String("trace_id", traceID))
-			}
-			logger.Warn("asynq task will retry",
-				zap.String("task", t.Type()),
-				zap.Int("attempt", n+1),
-				zap.Duration("retry_after", delay),
-				zap.Error(e),
-			)
-			return delay
-		},
-		ErrorHandler: asynq.ErrorHandlerFunc(logTaskFailed),
+		RetryDelayFunc: exampleRetryDelay,
+		ErrorHandler:   asynq.ErrorHandlerFunc(logTaskFailed),
 	})
+}
+
+// exampleRetryDelay returns the backoff delay for a failed task: 5s × 2^n,
+// capped at one hour. It is a named function so it can be unit tested.
+func exampleRetryDelay(n int, e error, t *asynq.Task) time.Duration {
+	delay := time.Duration(1<<uint(n)) * 5 * time.Second
+	if delay > time.Hour {
+		delay = time.Hour
+	}
+	logger := applog.L()
+	if traceID := task.TraceIDFromPayload(t.Payload()); traceID != "" {
+		logger = logger.With(zap.String("trace_id", traceID))
+	}
+	logger.Warn("asynq task will retry",
+		zap.String("task", t.Type()),
+		zap.Int("attempt", n+1),
+		zap.Duration("retry_after", delay),
+		zap.Error(e),
+	)
+	return delay
 }
 
 type taskRuntimeMetadata struct {
