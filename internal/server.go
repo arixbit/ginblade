@@ -15,6 +15,7 @@ import (
 	"github.com/arixbit/ginblade/internal/repository"
 	"github.com/arixbit/ginblade/internal/router"
 	"github.com/arixbit/ginblade/internal/service"
+	"github.com/arixbit/ginblade/pkg/cache"
 )
 
 var (
@@ -30,6 +31,7 @@ type HTTPHandlers struct {
 	Auth    *handler.AuthHandler
 	Health  *handler.HealthHandler
 	Example *handler.ExampleHandler
+	Wallet  *handler.WalletHandler
 }
 
 // Server owns the HTTP transport created from application dependencies.
@@ -119,11 +121,26 @@ func newHTTPHandlers(reg *bootstrap.Registry) *HTTPHandlers {
 	exampleRepository := repository.NewExampleRepository(db)
 	exampleService := service.NewExampleService(exampleRepository, reg.Queue)
 
+	walletService := service.NewWalletService(
+		repository.NewWalletRepository(db),
+		walletCache(reg.Cache),
+	)
+
 	return &HTTPHandlers{
 		Auth:    handler.NewAuthHandler(reg.Auth),
 		Health:  handler.NewHealthHandler(reg.DB, reg.Cache),
 		Example: handler.NewExampleHandler(exampleService),
+		Wallet:  handler.NewWalletHandler(walletService),
 	}
+}
+
+// walletCache adapts the concrete cache client to the service-defined
+// WalletCache interface. Returns nil when Redis is not configured.
+func walletCache(c *cache.Client) service.WalletCache {
+	if c == nil {
+		return nil
+	}
+	return c
 }
 
 func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.IPRateLimiter) (*gin.Engine, error) {
@@ -151,6 +168,7 @@ func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.I
 		Auth:         handlers.Auth,
 		AuthRequired: authRequired,
 		Example:      handlers.Example,
+		Wallet:       handlers.Wallet,
 	}); err != nil {
 		return nil, err
 	}
