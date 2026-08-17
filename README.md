@@ -1,5 +1,7 @@
 # Go Skeleton
 
+[中文文档](./README.zh-CN.md)
+
 [![CI](https://github.com/arixbit/go-example/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/go-example/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Version](https://img.shields.io/github/v/tag/arixbit/go-example?label=version)](https://github.com/arixbit/go-example/tags)
