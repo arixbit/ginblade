@@ -23,8 +23,8 @@ func TestLoadEnvReadsFile(t *testing.T) {
 		t.Fatalf("write env file: %v", err)
 	}
 
-	os.Unsetenv("LOADENV_TEST_KEY")
-	t.Cleanup(func() { os.Unsetenv("LOADENV_TEST_KEY") })
+	_ = os.Unsetenv("LOADENV_TEST_KEY")
+	t.Cleanup(func() { _ = os.Unsetenv("LOADENV_TEST_KEY") })
 
 	LoadEnv(envFile)
 
