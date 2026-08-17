@@ -11,6 +11,7 @@
 [![Open Issues](https://img.shields.io/github/issues/arixbit/ginblade)](https://github.com/arixbit/ginblade/issues)
 [![Last Commit](https://img.shields.io/github/last-commit/arixbit/ginblade)](https://github.com/arixbit/ginblade/commits)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/ginblade/security/dependabot)
+[![codecov](https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg)](https://codecov.io/gh/arixbit/ginblade)
 
 An opinionated, runnable Go backend skeleton for services that need clear
 boundaries, independently deployable processes, and a delivery path that can
