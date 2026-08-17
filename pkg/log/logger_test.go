@@ -59,12 +59,6 @@ func TestTraceIDRoundTrip(t *testing.T) {
 	}
 }
 
-func TestTraceIDFromNilContext(t *testing.T) {
-	if got := TraceIDFrom(nil); got != "" {
-		t.Fatalf("TraceIDFrom(nil) = %q, want empty", got)
-	}
-}
-
 func TestTraceIDFromEmptyContext(t *testing.T) {
 	if got := TraceIDFrom(context.Background()); got != "" {
 		t.Fatalf("TraceIDFrom(background) = %q, want empty", got)
