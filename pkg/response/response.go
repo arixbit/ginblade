@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 
-	"go-skeleton/internal/errcode"
-	customvalidator "go-skeleton/pkg/validator"
+	"github.com/arixbit/ginblade/internal/errcode"
+	customvalidator "github.com/arixbit/ginblade/pkg/validator"
 )
 
 // Response is the standard API response structure.

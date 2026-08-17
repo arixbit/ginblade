@@ -10,10 +10,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"go-skeleton/config"
-	app "go-skeleton/internal"
-	"go-skeleton/internal/bootstrap"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/config"
+	app "github.com/arixbit/ginblade/internal"
+	"github.com/arixbit/ginblade/internal/bootstrap"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 const (

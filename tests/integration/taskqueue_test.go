@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 
-	"go-skeleton/internal/task"
-	"go-skeleton/internal/taskqueue"
+	"github.com/arixbit/ginblade/internal/task"
+	"github.com/arixbit/ginblade/internal/taskqueue"
 )
 
 func TestRedisTaskQueueIntegration(t *testing.T) {

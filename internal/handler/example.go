@@ -3,8 +3,8 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/internal/service"
-	"go-skeleton/pkg/response"
+	"github.com/arixbit/ginblade/internal/service"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 // ExampleHandler handles HTTP requests for examples.

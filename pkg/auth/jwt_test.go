@@ -11,7 +11,7 @@ import (
 func TestJWTManagerGenerateAndParse(t *testing.T) {
 	manager, err := NewJWTManager(JWTConfig{
 		Secret: "test-secret",
-		Issuer: "go-skeleton",
+		Issuer: "ginblade",
 		TTL:    time.Hour,
 	})
 	if err != nil {
@@ -33,8 +33,8 @@ func TestJWTManagerGenerateAndParse(t *testing.T) {
 	if claims.Subject != "account-1" {
 		t.Fatalf("Subject = %q, want account-1", claims.Subject)
 	}
-	if claims.Issuer != "go-skeleton" {
-		t.Fatalf("Issuer = %q, want go-skeleton", claims.Issuer)
+	if claims.Issuer != "ginblade" {
+		t.Fatalf("Issuer = %q, want ginblade", claims.Issuer)
 	}
 }
 

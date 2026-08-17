@@ -7,8 +7,8 @@ import (
 	"github.com/hibiken/asynq"
 	"golang.org/x/sync/errgroup"
 
-	"go-skeleton/internal/bootstrap"
-	"go-skeleton/internal/worker"
+	"github.com/arixbit/ginblade/internal/bootstrap"
+	"github.com/arixbit/ginblade/internal/worker"
 )
 
 // Worker owns the async task runtime created from application dependencies.

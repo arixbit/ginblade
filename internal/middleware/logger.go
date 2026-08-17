@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	applog "go-skeleton/pkg/log"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // TraceLogger attaches a trace ID to each request and optionally logs request lifecycle fields.

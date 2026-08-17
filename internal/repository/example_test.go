@@ -8,7 +8,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"go-skeleton/internal/model"
+	"github.com/arixbit/ginblade/internal/model"
 )
 
 type dbCapture struct {

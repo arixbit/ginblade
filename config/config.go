@@ -38,7 +38,7 @@ func Load() *Config {
 		},
 		Auth: AuthConfig{
 			JWTSecret: os.Getenv("JWT_SECRET"),
-			JWTIssuer: getEnvOrDefault("JWT_ISSUER", "go-skeleton"),
+			JWTIssuer: getEnvOrDefault("JWT_ISSUER", "ginblade"),
 			JWTTTL:    durationEnv("JWT_TTL", 24*time.Hour),
 		},
 		Cors: CorsConfig{

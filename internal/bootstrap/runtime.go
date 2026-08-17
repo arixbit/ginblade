@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/config"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/config"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // InitRuntime initializes process-wide runtime settings.

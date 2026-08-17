@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"go-skeleton/config"
-	"go-skeleton/internal/taskqueue"
-	"go-skeleton/pkg/cache"
-	"go-skeleton/pkg/database"
+	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/taskqueue"
+	"github.com/arixbit/ginblade/pkg/cache"
+	"github.com/arixbit/ginblade/pkg/database"
 )
 
 // InitWorker initializes resources required by the async worker process.

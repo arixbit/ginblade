@@ -7,11 +7,11 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"go-skeleton/config"
-	"go-skeleton/internal/taskqueue"
-	"go-skeleton/pkg/auth"
-	"go-skeleton/pkg/cache"
-	"go-skeleton/pkg/database"
+	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/taskqueue"
+	"github.com/arixbit/ginblade/pkg/auth"
+	"github.com/arixbit/ginblade/pkg/cache"
+	"github.com/arixbit/ginblade/pkg/database"
 )
 
 // Registry holds shared runtime resources initialized at process startup.

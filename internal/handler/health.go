@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/pkg/cache"
-	"go-skeleton/pkg/database"
+	"github.com/arixbit/ginblade/pkg/cache"
+	"github.com/arixbit/ginblade/pkg/database"
 )
 
 // HealthHandler checks infrastructure dependencies.

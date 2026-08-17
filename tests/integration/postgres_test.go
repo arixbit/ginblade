@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"go-skeleton/internal/model"
-	"go-skeleton/internal/repository"
-	"go-skeleton/pkg/database"
+	"github.com/arixbit/ginblade/internal/model"
+	"github.com/arixbit/ginblade/internal/repository"
+	"github.com/arixbit/ginblade/pkg/database"
 )
 
 func TestPostgresRepositoryIntegration(t *testing.T) {

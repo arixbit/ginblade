@@ -10,16 +10,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/pkg/auth"
-	"go-skeleton/pkg/response"
-	"go-skeleton/pkg/validator"
+	"github.com/arixbit/ginblade/pkg/auth"
+	"github.com/arixbit/ginblade/pkg/response"
+	"github.com/arixbit/ginblade/pkg/validator"
 )
 
 func TestAuthHandlerCreateToken(t *testing.T) {
 	validator.InitValidator()
 	manager, err := auth.NewJWTManager(auth.JWTConfig{
 		Secret: "test-secret",
-		Issuer: "go-skeleton-test",
+		Issuer: "ginblade-test",
 		TTL:    time.Hour,
 	})
 	if err != nil {

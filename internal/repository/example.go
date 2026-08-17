@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"go-skeleton/internal/model"
+	"github.com/arixbit/ginblade/internal/model"
 )
 
 // ExampleRepository persists examples.

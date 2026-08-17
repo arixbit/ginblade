@@ -6,10 +6,10 @@ import (
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/internal/model"
-	"go-skeleton/internal/task"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/internal/model"
+	"github.com/arixbit/ginblade/internal/task"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // ExampleRepository is the persistence dependency used by ExampleService.
