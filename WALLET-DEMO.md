@@ -3,11 +3,15 @@
 This branch demonstrates two capabilities the GinBlade skeleton ships but the
 `Example` flow does not use:
 
-1. **Transactional writes** — `internal/repository/wallet.go` uses `InTx`
-   (from `repository/tx.go`) so a transfer's debit, credit, and audit record
-   run in one atomic transaction. The debit uses a guarded UPDATE
-   (`WHERE id = ? AND balance >= ?`) so concurrent transfers cannot overdraw
-   the source wallet.
+1. **Transaction orchestration at the service layer** —
+   `internal/service/wallet.go` opens a transaction via the injected
+   `TxRunner` interface (`repository.InTx` bound to the DB handle at the
+   composition root) and coordinates three repository calls inside it:
+   debit, credit, and audit record. The repository exposes individual atomic
+   operations (`Debit`, `Credit`, `CreateTransferRecord`) that transparently
+   join the caller's transaction through `dbFromContext`. This is the pattern
+   for cross-table / cross-repository use cases: business orchestration lives
+   in the service, persistence primitives live in the repository.
 2. **Cache-aside reads** — `internal/service/wallet.go` reads wallet lists
    through Redis when a cache is configured: hit → serve cached; miss → load
    from DB and fill. Writes bump a list version key, which invalidates cached
@@ -35,8 +39,8 @@ project, copy these pieces:
 
 ```
 internal/model/wallet.go          # models
-internal/repository/wallet.go     # InTx transaction demo
-internal/service/wallet.go        # cache-aside + service interface demo
+internal/repository/wallet.go     # atomic ops + dbFromContext (join caller tx)
+internal/service/wallet.go        # TxRunner + cache-aside orchestration demo
 internal/handler/wallet.go        # HTTP handlers
 internal/service/wallet_test.go   # mocked tests
 ```

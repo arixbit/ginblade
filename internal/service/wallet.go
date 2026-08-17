@@ -14,12 +14,23 @@ import (
 	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
-// WalletRepository is the persistence boundary used by WalletService.
+// WalletRepository is the persistence boundary used by WalletService. Its
+// write methods are individual atomic operations; the service orchestrates
+// them inside a transaction via TxRunner.
 type WalletRepository interface {
 	Create(ctx context.Context, wallet *model.Wallet) error
 	GetByID(ctx context.Context, id uint64) (*model.Wallet, error)
 	List(ctx context.Context, limit, offset int) ([]model.Wallet, error)
-	Transfer(ctx context.Context, fromID, toID uint64, amount int64) error
+	Debit(ctx context.Context, id uint64, amount int64) error
+	Credit(ctx context.Context, id uint64, amount int64) error
+	CreateTransferRecord(ctx context.Context, fromID, toID uint64, amount int64) error
+}
+
+// TxRunner executes a function inside a database transaction. The concrete
+// implementation (repository.InTx bound to the DB handle) is injected at the
+// composition root, keeping the service free of GORM.
+type TxRunner interface {
+	InTx(ctx context.Context, fn func(context.Context) error) error
 }
 
 // WalletCache is the cache boundary used by WalletService for cached reads.
@@ -29,20 +40,22 @@ type WalletCache interface {
 }
 
 // WalletService handles wallet operations. It demonstrates two patterns the
-// skeleton ships but the Example flow does not use: transactional writes
-// (delegated to the repository's Transfer) and cache-aside reads (List).
+// skeleton ships but the Example flow does not use: transaction orchestration
+// across multiple repository calls (Transfer) and cache-aside reads (List).
 type WalletService struct {
 	repo     WalletRepository
 	cache    WalletCache
+	tx       TxRunner
 	cacheTTL time.Duration
 }
 
 // NewWalletService creates a WalletService. cache is optional; when nil, List
-// degrades to a plain database read.
-func NewWalletService(repo WalletRepository, cache WalletCache) *WalletService {
+// degrades to a plain database read. tx is required for Transfer.
+func NewWalletService(repo WalletRepository, cache WalletCache, tx TxRunner) *WalletService {
 	return &WalletService{
 		repo:     repo,
 		cache:    cache,
+		tx:       tx,
 		cacheTTL: 60 * time.Second,
 	}
 }
@@ -71,9 +84,22 @@ type TransferReq struct {
 	Amount int64  `json:"amount" binding:"required,gt=0"`
 }
 
-// Transfer moves money between wallets.
+// Transfer moves money between wallets. The debit, credit, and audit record
+// are orchestrated inside a single transaction opened here at the service
+// layer — the boundary where business use cases coordinate multiple
+// repository operations. If any step fails, the whole transfer rolls back.
 func (s *WalletService) Transfer(ctx context.Context, req *TransferReq) error {
-	if err := s.repo.Transfer(ctx, req.FromID, req.ToID, req.Amount); err != nil {
+	err := s.tx.InTx(ctx, func(txCtx context.Context) error {
+		if err := s.repo.Debit(txCtx, req.FromID, req.Amount); err != nil {
+			return err
+		}
+		if err := s.repo.Credit(txCtx, req.ToID, req.Amount); err != nil {
+			return err
+		}
+		return s.repo.CreateTransferRecord(txCtx, req.FromID, req.ToID, req.Amount)
+	})
+
+	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrInsufficientBalance):
 			return errcode.InsufficientBalance

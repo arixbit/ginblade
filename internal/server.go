@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/arixbit/ginblade/config"
 	"github.com/arixbit/ginblade/internal/bootstrap"
@@ -124,6 +125,7 @@ func newHTTPHandlers(reg *bootstrap.Registry) *HTTPHandlers {
 	walletService := service.NewWalletService(
 		repository.NewWalletRepository(db),
 		walletCache(reg.Cache),
+		walletTx(db),
 	)
 
 	return &HTTPHandlers{
@@ -141,6 +143,21 @@ func walletCache(c *cache.Client) service.WalletCache {
 		return nil
 	}
 	return c
+}
+
+// txRunnerFunc adapts a function to the service.TxRunner interface.
+type txRunnerFunc func(context.Context, func(context.Context) error) error
+
+func (f txRunnerFunc) InTx(ctx context.Context, fn func(context.Context) error) error {
+	return f(ctx, fn)
+}
+
+// walletTx binds repository.InTx to the DB handle and exposes it as the
+// service-defined TxRunner interface, keeping the service free of GORM.
+func walletTx(db *gorm.DB) service.TxRunner {
+	return txRunnerFunc(func(ctx context.Context, fn func(context.Context) error) error {
+		return repository.InTx(ctx, db, fn)
+	})
 }
 
 func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.IPRateLimiter) (*gin.Engine, error) {

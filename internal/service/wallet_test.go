@@ -20,9 +20,11 @@ func init() {
 }
 
 type mockWalletRepo struct {
-	createFunc   func(ctx context.Context, w *model.Wallet) error
-	listFunc     func(ctx context.Context, limit, offset int) ([]model.Wallet, error)
-	transferFunc func(ctx context.Context, fromID, toID uint64, amount int64) error
+	createFunc       func(ctx context.Context, w *model.Wallet) error
+	listFunc         func(ctx context.Context, limit, offset int) ([]model.Wallet, error)
+	debitFunc        func(ctx context.Context, id uint64, amount int64) error
+	creditFunc       func(ctx context.Context, id uint64, amount int64) error
+	createRecordFunc func(ctx context.Context, fromID, toID uint64, amount int64) error
 }
 
 func (m *mockWalletRepo) Create(ctx context.Context, w *model.Wallet) error {
@@ -43,11 +45,40 @@ func (m *mockWalletRepo) List(ctx context.Context, limit, offset int) ([]model.W
 	return nil, nil
 }
 
-func (m *mockWalletRepo) Transfer(ctx context.Context, fromID, toID uint64, amount int64) error {
-	if m.transferFunc != nil {
-		return m.transferFunc(ctx, fromID, toID, amount)
+func (m *mockWalletRepo) Debit(ctx context.Context, id uint64, amount int64) error {
+	if m.debitFunc != nil {
+		return m.debitFunc(ctx, id, amount)
 	}
 	return nil
+}
+
+func (m *mockWalletRepo) Credit(ctx context.Context, id uint64, amount int64) error {
+	if m.creditFunc != nil {
+		return m.creditFunc(ctx, id, amount)
+	}
+	return nil
+}
+
+func (m *mockWalletRepo) CreateTransferRecord(ctx context.Context, fromID, toID uint64, amount int64) error {
+	if m.createRecordFunc != nil {
+		return m.createRecordFunc(ctx, fromID, toID, amount)
+	}
+	return nil
+}
+
+// mockTxRunner runs fn directly; it records whether InTx was used so tests can
+// assert the service orchestrates repository calls inside a transaction.
+type mockTxRunner struct {
+	called bool
+	err    error
+}
+
+func (m *mockTxRunner) InTx(ctx context.Context, fn func(context.Context) error) error {
+	m.called = true
+	if m.err != nil {
+		return m.err
+	}
+	return fn(ctx)
 }
 
 type mockWalletCache struct {
@@ -79,7 +110,7 @@ func TestWalletCreateSuccess(t *testing.T) {
 		},
 	}
 	cache := newMockWalletCache()
-	svc := NewWalletService(repo, cache)
+	svc := NewWalletService(repo, cache, &mockTxRunner{})
 
 	wallet, err := svc.Create(context.Background(), &CreateWalletReq{Name: "alice", Balance: 100})
 	if err != nil {
@@ -100,7 +131,7 @@ func TestWalletCreateDatabaseError(t *testing.T) {
 			return errors.New("connection refused")
 		},
 	}
-	svc := NewWalletService(repo, nil)
+	svc := NewWalletService(repo, nil, &mockTxRunner{})
 
 	_, err := svc.Create(context.Background(), &CreateWalletReq{Name: "x"})
 	var ec errcode.Error
@@ -109,32 +140,49 @@ func TestWalletCreateDatabaseError(t *testing.T) {
 	}
 }
 
-func TestWalletTransferSuccess(t *testing.T) {
-	called := false
+func TestWalletTransferOrchestratesInsideTx(t *testing.T) {
+	var order []string
 	repo := &mockWalletRepo{
-		transferFunc: func(_ context.Context, _, _ uint64, _ int64) error {
-			called = true
+		debitFunc: func(_ context.Context, id uint64, amount int64) error {
+			order = append(order, "debit")
+			return nil
+		},
+		creditFunc: func(_ context.Context, id uint64, amount int64) error {
+			order = append(order, "credit")
+			return nil
+		},
+		createRecordFunc: func(_ context.Context, _, _ uint64, _ int64) error {
+			order = append(order, "record")
 			return nil
 		},
 	}
-	svc := NewWalletService(repo, newMockWalletCache())
+	tx := &mockTxRunner{}
+	svc := NewWalletService(repo, nil, tx)
 
-	err := svc.Transfer(context.Background(), &TransferReq{FromID: 1, ToID: 2, Amount: 50})
-	if err != nil {
+	if err := svc.Transfer(context.Background(), &TransferReq{FromID: 1, ToID: 2, Amount: 50}); err != nil {
 		t.Fatalf("Transfer: %v", err)
 	}
-	if !called {
-		t.Fatal("repository Transfer was not called")
+	if !tx.called {
+		t.Fatal("repository calls must run inside TxRunner.InTx")
+	}
+	want := []string{"debit", "credit", "record"}
+	if len(order) != len(want) {
+		t.Fatalf("call order = %v, want %v", order, want)
+	}
+	for i := range want {
+		if order[i] != want[i] {
+			t.Fatalf("call order = %v, want %v", order, want)
+		}
 	}
 }
 
 func TestWalletTransferInsufficientBalance(t *testing.T) {
 	repo := &mockWalletRepo{
-		transferFunc: func(_ context.Context, _, _ uint64, _ int64) error {
+		debitFunc: func(_ context.Context, _ uint64, _ int64) error {
 			return repository.ErrInsufficientBalance
 		},
 	}
-	svc := NewWalletService(repo, nil)
+	svc := NewWalletService(repo, nil, &mockTxRunner{})
 
 	err := svc.Transfer(context.Background(), &TransferReq{FromID: 1, ToID: 2, Amount: 999})
 	var ec errcode.Error
@@ -145,11 +193,11 @@ func TestWalletTransferInsufficientBalance(t *testing.T) {
 
 func TestWalletTransferRepoError(t *testing.T) {
 	repo := &mockWalletRepo{
-		transferFunc: func(_ context.Context, _, _ uint64, _ int64) error {
+		creditFunc: func(_ context.Context, _ uint64, _ int64) error {
 			return errors.New("db down")
 		},
 	}
-	svc := NewWalletService(repo, nil)
+	svc := NewWalletService(repo, nil, &mockTxRunner{})
 
 	err := svc.Transfer(context.Background(), &TransferReq{FromID: 1, ToID: 2, Amount: 10})
 	var ec errcode.Error
@@ -163,8 +211,7 @@ func TestWalletListCacheHit(t *testing.T) {
 	raw, _ := json.Marshal(wallets)
 
 	cache := newMockWalletCache()
-	// 直接填缓存，模拟一次命中
-	svc := NewWalletService(&mockWalletRepo{}, cache)
+	svc := NewWalletService(&mockWalletRepo{}, cache, &mockTxRunner{})
 	key := svc.listKey(context.Background(), 20, 0)
 	cache.store[key] = string(raw)
 
@@ -196,7 +243,7 @@ func TestWalletListCacheMissFillsCache(t *testing.T) {
 		},
 	}
 	cache := newMockWalletCache()
-	svc := NewWalletService(repo, cache)
+	svc := NewWalletService(repo, cache, &mockTxRunner{})
 
 	res, err := svc.List(context.Background(), &ListWalletsReq{})
 	if err != nil {
@@ -205,7 +252,6 @@ func TestWalletListCacheMissFillsCache(t *testing.T) {
 	if len(res.Wallets) != 1 {
 		t.Fatalf("expected 1 wallet, got %d", len(res.Wallets))
 	}
-	// 缓存应被填充
 	key := svc.listKey(context.Background(), 20, 0)
 	if cache.store[key] == "" {
 		t.Fatal("cache should be filled after a miss")
@@ -218,7 +264,7 @@ func TestWalletListWithoutCache(t *testing.T) {
 			return []model.Wallet{{ID: 3}}, nil
 		},
 	}
-	svc := NewWalletService(repo, nil) // 无缓存：降级为纯 DB 读
+	svc := NewWalletService(repo, nil, &mockTxRunner{})
 
 	res, err := svc.List(context.Background(), &ListWalletsReq{})
 	if err != nil {
