@@ -1,0 +1,56 @@
+# Dependabot 自动依赖更新配置
+# 文档: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # Go 模块依赖 (go.mod / go.sum)
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      # golang.org/x/* 系列合并为一个 PR
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      # GORM 全家桶合并为一个 PR
+      gorm:
+        patterns:
+          - "gorm.io/*"
+      # 其余依赖的 minor/patch 更新合并为一个 PR
+      other-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+    # 说明: semver-major 更新不归入任何组, 会单独出 PR, 便于人工判断破坏性变更
+
+  # Docker 基础镜像 (Dockerfile + compose.yaml)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(docker)"
+
+  # GitHub Actions 自身版本
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(actions)"
