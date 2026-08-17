@@ -1,0 +1,39 @@
+# 对 Dependabot 的 PR 自动启用 auto-merge
+# 前提: 仓库需开启 "Allow auto-merge", 且 main 分支有 ruleset 要求 CI 检查通过
+# 参考: https://docs.github.com/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          compat-lookup: true
+
+      # minor/patch 更新: 自动启用 auto-merge (CI 全绿后自动合并)
+      - name: Auto-merge minor and patch updates
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # major 更新: 跳过自动合并, 留给人 review (破坏性变更需要判断)
+      - name: Skip auto-merge for major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body "This is a **major version update** — auto-merge skipped. Please review manually before merging."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
