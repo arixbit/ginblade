@@ -8,13 +8,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/config"
-	"go-skeleton/internal/bootstrap"
-	"go-skeleton/internal/handler"
-	"go-skeleton/internal/middleware"
-	"go-skeleton/internal/repository"
-	"go-skeleton/internal/router"
-	"go-skeleton/internal/service"
+	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/bootstrap"
+	"github.com/arixbit/ginblade/internal/handler"
+	"github.com/arixbit/ginblade/internal/middleware"
+	"github.com/arixbit/ginblade/internal/repository"
+	"github.com/arixbit/ginblade/internal/router"
+	"github.com/arixbit/ginblade/internal/service"
 )
 
 var (

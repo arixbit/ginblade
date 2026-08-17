@@ -1,14 +1,14 @@
-# Go Skeleton · 中文使用介绍
+# GinBlade · 中文使用介绍
 
-[![CI](https://github.com/arixbit/go-example/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/go-example/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/github/go-mod/go-version/arixbit/go-example?label=Go)](https://go.dev/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/go-example)](https://goreportcard.com/report/github.com/arixbit/go-example)
-[![Version](https://img.shields.io/github/v/tag/arixbit/go-example?label=version)](https://github.com/arixbit/go-example/tags)
-[![Stars](https://img.shields.io/github/stars/arixbit/go-example)](https://github.com/arixbit/go-example)
-[![Forks](https://img.shields.io/github/forks/arixbit/go-example)](https://github.com/arixbit/go-example/fork)
-[![Open Issues](https://img.shields.io/github/issues/arixbit/go-example)](https://github.com/arixbit/go-example/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/arixbit/go-example)](https://github.com/arixbit/go-example/commits)
-[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/go-example/security/dependabot)
+[![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/ginblade)](https://goreportcard.com/report/github.com/arixbit/ginblade)
+[![Version](https://img.shields.io/github/v/tag/arixbit/ginblade?label=version)](https://github.com/arixbit/ginblade/tags)
+[![Stars](https://img.shields.io/github/stars/arixbit/ginblade)](https://github.com/arixbit/ginblade)
+[![Forks](https://img.shields.io/github/forks/arixbit/ginblade)](https://github.com/arixbit/ginblade/fork)
+[![Open Issues](https://img.shields.io/github/issues/arixbit/ginblade)](https://github.com/arixbit/ginblade/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/arixbit/ginblade)](https://github.com/arixbit/ginblade/commits)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/ginblade/security/dependabot)
 [English](./README.md)
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要清晰分层、多进程独立部署、且能从本地开发一路验证到 CI 的服务而设计。
@@ -156,7 +156,7 @@ go run ./cmd/worker
 | `REDIS_CACHE_DB` | 否 | `0` | 缓存使用的 DB 编号 |
 | `REDIS_QUEUE_DB` | 否 | `6` | Asynq 队列使用的 DB 编号 |
 | `JWT_SECRET` | 否 | 空 | JWT 签名密钥；配置后启用 auth 示例路由 |
-| `JWT_ISSUER` | 否 | `go-skeleton` | JWT 签发者 |
+| `JWT_ISSUER` | 否 | `ginblade` | JWT 签发者 |
 | `JWT_TTL` | 否 | `24h` | Token 有效期 |
 | `CORS_ALLOW_ORIGINS` | 否 | 空 | 允许的浏览器来源（逗号分隔）；空 = 不发 CORS 头 |
 | `LOG_LEVEL` | 否 | `info` | 日志级别 |

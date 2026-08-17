@@ -1,5 +1,5 @@
 x-app: &app
-  image: go-skeleton:local
+  image: ginblade:local
   build:
     context: .
   environment:

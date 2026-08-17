@@ -9,15 +9,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/pkg/auth"
-	"go-skeleton/pkg/response"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/pkg/auth"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 func TestBearerAuthAcceptsValidToken(t *testing.T) {
 	manager, err := auth.NewJWTManager(auth.JWTConfig{
 		Secret: "test-secret",
-		Issuer: "go-skeleton-test",
+		Issuer: "ginblade-test",
 		TTL:    time.Hour,
 	})
 	if err != nil {

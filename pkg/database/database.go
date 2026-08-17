@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	applog "go-skeleton/pkg/log"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // DBManager holds the primary database connection.

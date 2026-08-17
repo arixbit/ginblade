@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/pkg/auth"
-	"go-skeleton/pkg/response"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/pkg/auth"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 const authSubjectKey = "auth_subject"

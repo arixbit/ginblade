@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"go-skeleton/internal/errcode"
-	applog "go-skeleton/pkg/log"
-	"go-skeleton/pkg/response"
+	"github.com/arixbit/ginblade/internal/errcode"
+	applog "github.com/arixbit/ginblade/pkg/log"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 // Recovery catches panics and returns the standard API error envelope.

@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-skeleton/pkg/cache"
+	"github.com/arixbit/ginblade/pkg/cache"
 )
 
 func TestRedisCacheIntegration(t *testing.T) {
@@ -35,7 +35,7 @@ func TestRedisCacheIntegration(t *testing.T) {
 		t.Fatalf("ping redis cache: %v", err)
 	}
 
-	prefix := "go-skeleton:integration:" + strings.ReplaceAll(uuid.NewString(), "-", "") + ":"
+	prefix := "ginblade:integration:" + strings.ReplaceAll(uuid.NewString(), "-", "") + ":"
 	keys := make([]string, 0, 3)
 	t.Cleanup(func() {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), dependencyTimeout)

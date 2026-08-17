@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"go-skeleton/config"
-	"go-skeleton/internal/taskqueue"
-	"go-skeleton/pkg/validator"
+	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/taskqueue"
+	"github.com/arixbit/ginblade/pkg/validator"
 )
 
 // InitAPI initializes resources required by the HTTP API process.

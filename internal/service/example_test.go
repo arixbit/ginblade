@@ -8,9 +8,9 @@ import (
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/internal/model"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/internal/model"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 type mockExampleRepo struct {

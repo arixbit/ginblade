@@ -5,7 +5,7 @@ COMPOSE ?= docker compose
 BIN_DIR ?= bin
 GO_FILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
 
-INTEGRATION_PROJECT ?= go-skeleton-integration
+INTEGRATION_PROJECT ?= ginblade-integration
 INTEGRATION_POSTGRES_PORT ?= 55432
 INTEGRATION_REDIS_PORT ?= 56379
 TEST_POSTGRES_DSN ?= postgres://app:app@127.0.0.1:$(INTEGRATION_POSTGRES_PORT)/app?sslmode=disable&connect_timeout=5
@@ -89,7 +89,7 @@ migrate:
 	$(GO) run ./cmd/migrate
 
 docker-build:
-	docker build -t go-skeleton:local .
+	docker build -t ginblade:local .
 
 compose-up:
 	$(COMPOSE) up --build -d --wait

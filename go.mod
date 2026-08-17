@@ -1,4 +1,4 @@
-module go-skeleton
+module github.com/arixbit/ginblade
 
 go 1.25
 

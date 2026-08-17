@@ -13,12 +13,12 @@ import (
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/internal/model"
-	"go-skeleton/internal/service"
-	applog "go-skeleton/pkg/log"
-	"go-skeleton/pkg/response"
-	"go-skeleton/pkg/validator"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/internal/model"
+	"github.com/arixbit/ginblade/internal/service"
+	applog "github.com/arixbit/ginblade/pkg/log"
+	"github.com/arixbit/ginblade/pkg/response"
+	"github.com/arixbit/ginblade/pkg/validator"
 )
 
 func init() {

@@ -75,9 +75,9 @@ jobs:
       - name: Validate Compose
         run: docker compose config --quiet
       - name: Build container image
-        run: docker build --tag go-skeleton:local .
+        run: docker build --tag ginblade:local .
       - name: Verify non-root runtime
-        run: test "$(docker image inspect go-skeleton:local --format '{{.Config.User}}')" = "app"
+        run: test "$(docker image inspect ginblade:local --format '{{.Config.User}}')" = "app"
       - name: Start Compose stack
         run: docker compose up --detach --no-build --wait
       - name: Smoke test API health

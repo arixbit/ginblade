@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"go-skeleton/config"
-	"go-skeleton/internal/bootstrap"
-	"go-skeleton/internal/model"
-	"go-skeleton/pkg/database"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/bootstrap"
+	"github.com/arixbit/ginblade/internal/model"
+	"github.com/arixbit/ginblade/pkg/database"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 func main() {

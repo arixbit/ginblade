@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	applog "go-skeleton/pkg/log"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // RedisConfig holds Redis connection settings.

@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 
-	"go-skeleton/internal/errcode"
-	"go-skeleton/pkg/response"
+	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 type visitor struct {

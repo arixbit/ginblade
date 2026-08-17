@@ -10,10 +10,10 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"go-skeleton/internal/task"
-	"go-skeleton/internal/taskqueue"
-	"go-skeleton/pkg/cache"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/internal/task"
+	"github.com/arixbit/ginblade/internal/taskqueue"
+	"github.com/arixbit/ginblade/pkg/cache"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // Deps collects shared dependencies for async task handlers.

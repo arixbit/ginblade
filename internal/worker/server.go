@@ -8,8 +8,8 @@ import (
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
 
-	"go-skeleton/internal/task"
-	applog "go-skeleton/pkg/log"
+	"github.com/arixbit/ginblade/internal/task"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // NewRedisOpt creates the Redis connection config used by asynq.

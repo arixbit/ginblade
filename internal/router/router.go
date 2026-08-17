@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
-	"go-skeleton/internal/handler"
+	"github.com/arixbit/ginblade/internal/handler"
 )
 
 // Dependencies collects handlers and middleware needed during route registration.
