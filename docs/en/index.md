@@ -1,71 +1,97 @@
 # GinBlade
 
-[![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/ginblade)](https://goreportcard.com/report/github.com/arixbit/ginblade)
-[![Version](https://img.shields.io/github/v/tag/arixbit/ginblade?label=version)](https://github.com/arixbit/ginblade/tags)
-[![Stars](https://img.shields.io/github/stars/arixbit/ginblade)](https://github.com/arixbit/ginblade)
-[![codecov](https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg)](https://codecov.io/gh/arixbit/ginblade)
+<div class="gb-hero" markdown>
+
+<div class="gb-badges">
+  <img src="https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg" alt="CI">
+  <img src="https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go" alt="Go">
+  <img src="https://img.shields.io/github/stars/arixbit/ginblade" alt="Stars">
+  <img src="https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg" alt="codecov">
+</div>
+
+# Build services with *clear boundaries* { }
+
+An opinionated, runnable Go backend skeleton for services that need
+explicit layering, independently deployable processes, and a delivery
+path verifiable from local development through CI.
+
+<div class="gb-btns">
+  <a class="gb-btn gb-btn--primary" href="https://github.com/arixbit/ginblade">★ Star on GitHub</a>
+  <a class="gb-btn gb-btn--ghost" href="#quick-start">→ Quick Start</a>
+</div>
+
+</div>
 
 ---
 
-An opinionated, runnable Go backend skeleton for services that need clear
-boundaries, independently deployable processes, and a delivery path that can
-be verified from local development through CI.
+<div class="gb-section-label">Highlights</div>
 
-:octicons-star-24: [Star on GitHub](https://github.com/arixbit/ginblade){ .md-button .md-button--primary }
-:octicons-rocket-24: [Quick Start](#quick-start){ .md-button }
+## Why GinBlade
+
+<div class="gb-grid">
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Separate processes
+
+API, Asynq worker, and migration are independent binaries. Deploy,
+scale, and release each on its own cadence.
+</div>
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Explicit layering
+
+Application flow is `handler -> service -> repository`. Dependencies
+point inward; outer layers depend on interfaces they call.
+</div>
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Hand-written DI
+
+No DI framework. Resources assembled in `bootstrap`, passed down
+explicitly as structs. The dependency graph is visible in one place.
+</div>
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Optional infrastructure
+
+Redis and JWT are optional. When not configured, routes are skipped,
+health reports `not_configured`, the rest keeps working.
+</div>
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Verified delivery
+
+Unit, race, integration, lint, and container smoke tests in CI.
+Multi-stage non-root image + complete Compose stack.
+</div>
+
+<div class="gb-card" markdown>
+### <span class="gb-dot"></span> Framework-swappable
+
+Only the HTTP shell depends on Gin. Everything below `handler` is
+plain Go — swap the router without touching business logic.
+</div>
+
+</div>
 
 ---
 
-## Highlights
+<div class="gb-section-label">Quick Start</div>
 
-:material-package-variant-closed: **Separate processes, not one monolith**
-
-:   API, Asynq worker, and database migration are independent binaries.
-    Deploy, scale, and release each on its own cadence.
-
-:material-layers-triple: **Explicit layering**
-
-:   Application flow is `handler -> service -> repository`. Dependencies
-    point inward; outer layers depend on interfaces defined by the layer
-    they call.
-
-:material-hand-coin: **Hand-written dependency injection**
-
-:   No DI framework. Resources are assembled in `bootstrap` and passed down
-    explicitly as structs. The dependency graph is visible in one place.
-
-:material-database-cog: **Optional infrastructure**
-
-:   Redis and JWT are optional. When not configured, the corresponding
-    routes are not registered, health check reports `not_configured`, and
-    the rest of the service keeps working.
-
-:material-test-tube: **Verified delivery path**
-
-:   Unit, race, integration, lint, and container smoke tests run in CI.
-    Multi-stage, non-root container image and a complete local Docker
-    Compose stack.
-
----
-
-## Quick Start
-
-Start Postgres, Redis, migrations, the API, and the worker:
+## Up and running in 30 seconds
 
 ```sh
 make compose-up
 curl http://127.0.0.1:3000/health
 ```
 
-Stop the stack without deleting its data volumes:
+Stop the stack without deleting data:
 
 ```sh
 make compose-down
 ```
 
-Run locally without Docker:
+Or run locally without Docker:
 
 ```sh
 cp .env.example .env
@@ -75,7 +101,9 @@ go run ./cmd/api
 
 ---
 
-## Structure
+<div class="gb-section-label">Structure</div>
+
+## Project layout
 
 | Path | Purpose |
 |------|---------|
@@ -85,12 +113,16 @@ go run ./cmd/api
 | `config` | Environment loading and typed configuration |
 | `internal/bootstrap` | Process-level resource initialization |
 | `internal` | Application wiring, routes, middleware, layers |
-| `pkg` | Reusable infrastructure helpers (JWT, cache, log, ...) |
+| `pkg` | Reusable infrastructure helpers (JWT, cache, log, …) |
 
 ---
 
-## Next Steps
+<div class="gb-section-label">Next Steps</div>
 
-- :material-book-open-page-variant: [Architecture](architecture.md) - process model, layering, lifecycles
-- :material-translate: [i18n Guide](i18n-guide.md) - how to add request-language-aware messages
-- :material-github: [Source on GitHub](https://github.com/arixbit/ginblade)
+## Dive deeper
+
+<div class="gb-next">
+  <a href="architecture.md"><div class="gb-next-label">📖 Read</div><div class="gb-next-title">Architecture — process model, layering, lifecycles</div></a>
+  <a href="i18n-guide.md"><div class="gb-next-label">🌐 Guide</div><div class="gb-next-title">i18n — add request-language-aware messages</div></a>
+  <a href="https://github.com/arixbit/ginblade"><div class="gb-next-label">⚡ Source</div><div class="gb-next-title">GitHub — clone, star, contribute</div></a>
+</div>

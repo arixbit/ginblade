@@ -1,0 +1,298 @@
+/* ============================================================
+   GinBlade docs - Clean Minimal style
+   Layered on top of mkdocs-material. Overrides are scoped to
+   keep the rest of the documentation readable.
+   ============================================================ */
+
+:root {
+  --gb-cyan: #00ADD8;
+  --gb-cyan-dark: #0097B8;
+  --gb-indigo: #3D5AFE;
+  --gb-radius: 12px;
+  --gb-border: #e8eaed;
+  --gb-bg-soft: #f8f9fa;
+  --gb-text-soft: #555;
+}
+
+/* ---- Typography ---- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+}
+
+/* ---- Header: frosted glass ---- */
+.md-header {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--md-default-fg-color) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--gb-border);
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  background: rgba(15, 23, 42, 0.82) !important;
+}
+
+.md-header .md-header__title {
+  color: var(--md-default-fg-color) !important;
+  font-weight: 700;
+}
+
+.md-header .md-header__topic:first-child {
+  font-weight: 700;
+}
+
+/* Header text + nav links */
+.md-header nav .md-header__inner {
+  color: var(--md-default-fg-color);
+}
+
+/* Tabs bar transparent to blend with frosted header */
+.md-tabs {
+  background: transparent !important;
+  border-bottom: 1px solid var(--gb-border);
+  color: var(--md-default-fg-color) !important;
+}
+
+[data-md-color-scheme="slate"] .md-tabs {
+  border-bottom-color: var(--md-default-fg-color--lightest);
+}
+
+/* ---- Hero section (homepage only) ---- */
+.md-main__inner > .md-content {
+  /* let hero go full-width */
+}
+
+.gb-hero {
+  text-align: center;
+  padding: 72px 24px 48px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.gb-hero h1 {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  color: var(--md-default-fg-color);
+}
+
+.gb-hero h1 em {
+  font-style: normal;
+  color: var(--gb-cyan);
+}
+
+.gb-hero .gb-lede {
+  font-size: 18px;
+  color: var(--gb-text-soft);
+  max-width: 560px;
+  margin: 0 auto 28px;
+  line-height: 1.7;
+}
+
+[data-md-color-scheme="slate"] .gb-hero .gb-lede {
+  color: var(--md-default-fg-color--light);
+}
+
+.gb-hero .gb-badges {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.gb-hero .gb-badges img {
+  height: 20px;
+}
+
+.gb-hero .gb-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.gb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: all 0.15s;
+  border: 2px solid transparent;
+}
+
+.gb-btn--primary {
+  background: var(--gb-cyan);
+  color: #fff !important;
+}
+
+.gb-btn--primary:hover {
+  background: var(--gb-cyan-dark);
+  transform: translateY(-1px);
+}
+
+.gb-btn--ghost {
+  background: var(--gb-bg-soft);
+  color: var(--md-default-fg-color) !important;
+  border-color: var(--gb-border);
+}
+
+.gb-btn--ghost:hover {
+  border-color: var(--gb-cyan);
+  color: var(--gb-cyan) !important;
+}
+
+/* ---- Section labels ---- */
+.gb-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gb-cyan);
+  margin-bottom: 6px;
+}
+
+.gb-section-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 28px;
+  color: var(--md-default-fg-color);
+}
+
+/* ---- Feature card grid ---- */
+.gb-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.gb-card {
+  background: var(--gb-bg-soft);
+  border: 1px solid var(--gb-border);
+  border-radius: var(--gb-radius);
+  padding: 22px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.gb-card:hover {
+  border-color: var(--gb-cyan);
+  transform: translateY(-2px);
+}
+
+.gb-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--md-default-fg-color);
+}
+
+.gb-card h3 .gb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gb-cyan);
+  flex-shrink: 0;
+}
+
+.gb-card p {
+  font-size: 13.5px;
+  color: var(--gb-text-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+[data-md-color-scheme="slate"] .gb-card {
+  background: var(--md-default-fg-color--lightest);
+  border-color: var(--md-default-fg-color--lighter);
+}
+
+[data-md-color-scheme="slate"] .gb-card p {
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---- Code block styling ---- */
+.md-typeset pre > code {
+  border-radius: var(--gb-radius);
+}
+
+/* ---- Tables: cleaner borders ---- */
+.md-typeset table:not([class]) {
+  border-radius: var(--gb-radius);
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--gb-bg-soft);
+  font-weight: 600;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: var(--md-default-fg-color--lightest);
+}
+
+/* ---- Next steps cards ---- */
+.gb-next {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.gb-next a {
+  flex: 1;
+  min-width: 180px;
+  background: var(--gb-bg-soft);
+  border: 1px solid var(--gb-border);
+  border-radius: var(--gb-radius);
+  padding: 18px;
+  text-decoration: none !important;
+  color: var(--md-default-fg-color) !important;
+  transition: all 0.15s;
+}
+
+.gb-next a:hover {
+  border-color: var(--gb-cyan);
+  box-shadow: 0 4px 12px rgba(0, 173, 216, 0.1);
+}
+
+.gb-next a .gb-next-label {
+  font-size: 12px;
+  color: var(--gb-cyan);
+  font-weight: 600;
+}
+
+.gb-next a .gb-next-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ---- Misc: hide redundant elements on homepage ---- */
+.gb-hide-toc .md-sidebar--secondary {
+  display: none;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .gb-grid {
+    grid-template-columns: 1fr;
+  }
+  .gb-hero h1 {
+    font-size: 32px;
+  }
+  .gb-hero {
+    padding: 48px 16px 32px;
+  }
+}
