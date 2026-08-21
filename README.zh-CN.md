@@ -10,7 +10,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/arixbit/ginblade)](https://github.com/arixbit/ginblade/commits)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/ginblade/security/dependabot)
 [![codecov](https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg)](https://codecov.io/gh/arixbit/ginblade)
-[English](./README.md) · [架构文档](./ARCHITECTURE.zh-CN.md)
+[English](./README.md) · [架构文档](./ARCHITECTURE.zh-CN.md) · [多语言集成指南](./I18N.zh-CN.md) · [文档站](https://arixbit.github.io/ginblade/)
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要清晰分层、多进程独立部署、且能从本地开发一路验证到 CI 的服务而设计。
 
