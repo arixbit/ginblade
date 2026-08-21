@@ -26,20 +26,20 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: teal
-      accent: teal
+      primary: cyan
+      accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: teal
+      primary: cyan
+      accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   icon:
-    logo: material/compass-outline
+    logo: material/language-go
     repo: fontawesome/brands/github
 
 extra:
