@@ -44,7 +44,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if err := dbMgr.DB().WithContext(ctx).AutoMigrate(&model.Example{}); err != nil {
+	if err := dbMgr.DB().WithContext(ctx).AutoMigrate(&model.Example{}, &model.Wallet{}); err != nil {
 		applog.L().Fatal("run migrations", zap.Error(err))
 	}
 	applog.L().Info("migrations completed")
