@@ -16,7 +16,6 @@ theme:
   features:
     - navigation.tabs
     - navigation.sections
-    - navigation.indexes
     - navigation.top
     - search.suggest
     - search.highlight
@@ -79,6 +78,7 @@ markdown_extensions:
   - footnotes
 
 nav:
-  - Home: index.md
+  - index.md
+  - Quick Start: quickstart.md
   - Architecture: architecture.md
   - i18n Guide: i18n-guide.md

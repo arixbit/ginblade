@@ -1,4 +1,8 @@
-# GinBlade
+---
+hide:
+  - navigation
+  - toc
+---
 
 <div class="gb-hero" markdown>
 
@@ -9,7 +13,7 @@
   <img src="https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg" alt="codecov">
 </div>
 
-# Build services with *clear boundaries* { }
+<h1>Build services with <em>clear boundaries</em></h1>
 
 An opinionated, runnable Go backend skeleton for services that need
 explicit layering, independently deployable processes, and a delivery
@@ -17,7 +21,7 @@ path verifiable from local development through CI.
 
 <div class="gb-btns">
   <a class="gb-btn gb-btn--primary" href="https://github.com/arixbit/ginblade">★ Star on GitHub</a>
-  <a class="gb-btn gb-btn--ghost" href="#quick-start">→ Quick Start</a>
+  <a class="gb-btn gb-btn--ghost" href="quickstart/">→ Quick Start</a>
 </div>
 
 </div>
@@ -29,75 +33,42 @@ path verifiable from local development through CI.
 ## Why GinBlade
 
 <div class="gb-grid">
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Separate processes
-
-API, Asynq worker, and migration are independent binaries. Deploy,
-scale, and release each on its own cadence.
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Explicit layering
-
-Application flow is `handler -> service -> repository`. Dependencies
-point inward; outer layers depend on interfaces they call.
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Hand-written DI
-
-No DI framework. Resources assembled in `bootstrap`, passed down
-explicitly as structs. The dependency graph is visible in one place.
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Optional infrastructure
-
-Redis and JWT are optional. When not configured, routes are skipped,
-health reports `not_configured`, the rest keeps working.
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Verified delivery
-
-Unit, race, integration, lint, and container smoke tests in CI.
-Multi-stage non-root image + complete Compose stack.
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> Framework-swappable
-
-Only the HTTP shell depends on Gin. Everything below `handler` is
-plain Go — swap the router without touching business logic.
-</div>
-
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Separate processes</h3>
+    <p>API, Asynq worker, and migration are independent binaries. Deploy, scale, and release each on its own cadence.</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Explicit layering</h3>
+    <p>Application flow is <code>handler -&gt; service -&gt; repository</code>. Dependencies point inward; outer layers depend on interfaces they call.</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Hand-written DI</h3>
+    <p>No DI framework. Resources assembled in <code>bootstrap</code>, passed down explicitly as structs. The dependency graph is visible in one place.</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Optional infrastructure</h3>
+    <p>Redis and JWT are optional. When not configured, routes are skipped, health reports <code>not_configured</code>, the rest keeps working.</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Verified delivery</h3>
+    <p>Unit, race, integration, lint, and container smoke tests in CI. Multi-stage non-root image + complete Compose stack.</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> Framework-swappable</h3>
+    <p>Only the HTTP shell depends on Gin. Everything below <code>handler</code> is plain Go — swap the router without touching business logic.</p>
+  </div>
 </div>
 
 ---
 
 <div class="gb-section-label">Quick Start</div>
 
-## Up and running in 30 seconds
+## Start your first feature
 
-```sh
-make compose-up
-curl http://127.0.0.1:3000/health
-```
-
-Stop the stack without deleting data:
-
-```sh
-make compose-down
-```
-
-Or run locally without Docker:
-
-```sh
-cp .env.example .env
-make migrate
-go run ./cmd/api
-```
+<div class="gb-cta">
+  <p>From cloning the repo to writing your first route, service method, model, and cross-table transaction — the on-ramp walks through each layer with real code from the skeleton.</p>
+  <a class="gb-btn gb-btn--primary" href="quickstart/">Read the Quick Start guide →</a>
+</div>
 
 ---
 

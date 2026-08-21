@@ -59,6 +59,11 @@ body {
   border-bottom-color: var(--md-default-fg-color--lightest);
 }
 
+/* Hide the homepage tab - the logo already links home */
+.md-tabs__list > .md-tabs__item:first-child {
+  display: none !important;
+}
+
 /* ---- Hero section (homepage only) ---- */
 .md-main__inner > .md-content {
   /* let hero go full-width */
@@ -240,6 +245,33 @@ body {
 
 [data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
   background: var(--md-default-fg-color--lightest);
+}
+
+/* ---- CTA banner (homepage quick start) ---- */
+.gb-cta {
+  background: var(--gb-bg-soft);
+  border: 1px solid var(--gb-border);
+  border-radius: var(--gb-radius);
+  padding: 28px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.gb-cta p {
+  color: var(--gb-text-soft);
+  font-size: 15px;
+  max-width: 560px;
+  margin: 0 auto 20px;
+  line-height: 1.7;
+}
+
+[data-md-color-scheme="slate"] .gb-cta {
+  background: var(--md-default-fg-color--lightest);
+  border-color: var(--md-default-fg-color--lighter);
+}
+
+[data-md-color-scheme="slate"] .gb-cta p {
+  color: var(--md-default-fg-color--light);
 }
 
 /* ---- Next steps cards ---- */

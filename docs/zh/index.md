@@ -1,4 +1,8 @@
-# GinBlade
+---
+hide:
+  - navigation
+  - toc
+---
 
 <div class="gb-hero" markdown>
 
@@ -9,14 +13,14 @@
   <img src="https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg" alt="codecov">
 </div>
 
-# 用*清晰分层*构建服务 { }
+<h1>用<em>清晰分层</em>构建服务</h1>
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要显式分层、多进程独立部署、
 且能从本地开发一路验证到 CI 的服务而设计。
 
 <div class="gb-btns">
   <a class="gb-btn gb-btn--primary" href="https://github.com/arixbit/ginblade">★ 在 GitHub 上 Star</a>
-  <a class="gb-btn gb-btn--ghost" href="#快速上手">-> 快速上手</a>
+  <a class="gb-btn gb-btn--ghost" href="quickstart/">-> 快速上手</a>
 </div>
 
 </div>
@@ -28,69 +32,42 @@
 ## 为什么选 GinBlade
 
 <div class="gb-grid">
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 进程分离
-
-API、Asynq worker、数据库迁移是三个独立二进制，可独立部署、扩缩容、发版。
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 显式分层
-
-应用流向为 `handler -> service -> repository`。依赖指向内层，外层依赖被调用层定义的接口。
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 手写依赖注入
-
-不使用 DI 框架。资源在 `bootstrap` 中组装，以结构体显式向下传递，依赖图在一处可见。
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 基础设施可选
-
-Redis 与 JWT 均为可选。未配置时对应路由不注册、健康检查如实上报 `not_configured`，其余功能正常。
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 可验证的交付路径
-
-单元、竞态、集成、lint、容器冒烟测试在 CI 中运行。多阶段非 root 镜像 + 完整 Compose 栈。
-</div>
-
-<div class="gb-card" markdown>
-### <span class="gb-dot"></span> 框架可替换
-
-只有 HTTP 壳层依赖 Gin，`handler` 以下全部是纯 Go——换路由框架不动业务逻辑。
-</div>
-
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 进程分离</h3>
+    <p>API、Asynq worker、数据库迁移是三个独立二进制，可独立部署、扩缩容、发版。</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 显式分层</h3>
+    <p>应用流向为 <code>handler -&gt; service -&gt; repository</code>。依赖指向内层，外层依赖被调用层定义的接口。</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 手写依赖注入</h3>
+    <p>不使用 DI 框架。资源在 <code>bootstrap</code> 中组装，以结构体显式向下传递，依赖图在一处可见。</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 基础设施可选</h3>
+    <p>Redis 与 JWT 均为可选。未配置时对应路由不注册、健康检查如实上报 <code>not_configured</code>，其余功能正常。</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 可验证的交付路径</h3>
+    <p>单元、竞态、集成、lint、容器冒烟测试在 CI 中运行。多阶段非 root 镜像 + 完整 Compose 栈。</p>
+  </div>
+  <div class="gb-card">
+    <h3><span class="gb-dot"></span> 框架可替换</h3>
+    <p>只有 HTTP 壳层依赖 Gin，<code>handler</code> 以下全部是纯 Go——换路由框架不动业务逻辑。</p>
+  </div>
 </div>
 
 ---
 
 <div class="gb-section-label">快速上手</div>
 
-## 30 秒跑起来
+## 从第一个功能开始
 
-```sh
-make compose-up
-curl http://127.0.0.1:3000/health
-```
-
-停止并保留数据卷：
-
-```sh
-make compose-down
-```
-
-不用 Docker，本地运行：
-
-```sh
-cp .env.example .env
-make migrate
-go run ./cmd/api
-```
+<div class="gb-cta">
+  <p>从克隆仓库到写出第一条路由、第一个 Service 方法、第一个 Model 和跨表事务——上手教程逐层讲解，全部使用骨架内的真实代码。</p>
+  <a class="gb-btn gb-btn--primary" href="quickstart/">阅读快速上手教程 -></a>
+</div>
 
 ---
 
