@@ -1,0 +1,81 @@
+site_name: GinBlade
+site_url: https://arixbit.github.io/ginblade/
+site_description: An opinionated, runnable Go backend skeleton with clear
+  boundaries, independently deployable processes, and a delivery path
+  verifiable from local development through CI.
+site_author: ArixBit
+repo_name: arixbit/ginblade
+repo_url: https://github.com/arixbit/ginblade
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    logo: material/compass-outline
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/arixbit/ginblade
+
+plugins:
+  - search:
+      lang:
+        - en
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+        - locale: zh
+          name: 中文
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - i18n Guide: i18n-guide.md

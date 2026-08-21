@@ -4,3 +4,4 @@ cmd/*/.env
 bin/
 dist/
 coverage.out
+site/

@@ -1,6 +1,6 @@
 # GinBlade
 
-[中文文档](./README.zh-CN.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md)
+[中文文档](./README.zh-CN.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
 
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
