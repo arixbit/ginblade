@@ -30,7 +30,6 @@ type HTTPHandlers struct {
 	Auth    *handler.AuthHandler
 	Health  *handler.HealthHandler
 	Example *handler.ExampleHandler
-	Wallet  *handler.WalletHandler
 }
 
 // Server owns the HTTP transport created from application dependencies.
@@ -120,14 +119,10 @@ func newHTTPHandlers(reg *bootstrap.Registry) *HTTPHandlers {
 	exampleRepository := repository.NewExampleRepository(db)
 	exampleService := service.NewExampleService(exampleRepository, reg.Queue)
 
-	walletRepository := repository.NewWalletRepository(db)
-	walletService := service.NewWalletService(walletRepository, repository.NewTxRunner(db))
-
 	return &HTTPHandlers{
 		Auth:    handler.NewAuthHandler(reg.Auth),
 		Health:  handler.NewHealthHandler(reg.DB, reg.Cache),
 		Example: handler.NewExampleHandler(exampleService),
-		Wallet:  handler.NewWalletHandler(walletService),
 	}
 }
 
@@ -156,7 +151,6 @@ func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.I
 		Auth:         handlers.Auth,
 		AuthRequired: authRequired,
 		Example:      handlers.Example,
-		Wallet:       handlers.Wallet,
 	}); err != nil {
 		return nil, err
 	}

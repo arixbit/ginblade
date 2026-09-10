@@ -11,14 +11,12 @@ type Dependencies struct {
 	Auth         *handler.AuthHandler
 	AuthRequired gin.HandlerFunc
 	Example      *handler.ExampleHandler
-	Wallet       *handler.WalletHandler
 }
 
 // RegisterRoutes registers API routes under the given router group.
 func RegisterRoutes(r *gin.RouterGroup, deps Dependencies) error {
 	registerAuthRoutes(r, deps)
 	registerExampleRoutes(r, deps)
-	registerWalletRoutes(r, deps)
 	return nil
 }
 
@@ -43,13 +41,4 @@ func registerExampleRoutes(r *gin.RouterGroup, deps Dependencies) {
 	examples.GET("", deps.Example.List)
 	examples.POST("", deps.Example.Create)
 	examples.POST("/tasks", deps.Example.EnqueueTask)
-}
-
-func registerWalletRoutes(r *gin.RouterGroup, deps Dependencies) {
-	if deps.Wallet == nil {
-		return
-	}
-
-	wallets := r.Group("/wallets")
-	wallets.POST("/transfers", deps.Wallet.Transfer)
 }
