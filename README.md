@@ -1,6 +1,6 @@
 # GinBlade
 
-[中文文档](./README.zh-CN.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
+[中文文档](./README.zh-CN.md) · [Project Overview](./PROJECT-OVERVIEW.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
 
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
@@ -55,11 +55,23 @@ make compose-down
 
 - `cmd/api`: HTTP API process.
 - `cmd/worker`: Asynq worker process.
-- `cmd/migrate`: minimal GORM migration entrypoint for the example table.
+- `cmd/migrate`: minimal GORM migration entrypoint for the example and wallet tables.
 - `config`: environment loading and typed configuration values.
 - `internal/bootstrap`: process-level resource initialization and lifecycle.
 - `internal`: application wiring, routes, middleware, and example layers.
 - `pkg`: reusable infrastructure helpers, including generic JWT auth.
+
+Two reference flows ship with the skeleton. `Example` covers the baseline
+`handler → service → repository` path plus async task publishing. `Wallet`
+(`internal/{model,repository,service,handler}/wallet.go`) covers what
+`Example` does not: multi-row transactions orchestrated at the service layer,
+cache-aside reads, and mapping repository sentinel errors onto `errcode`
+values.
+
+Because a transaction is the one thing that is hard to retrofit later, the
+wallet module exists mainly to make that pattern copyable. Start with
+**[Transactions](docs/en/transactions.md)**; the
+[Quick Start](docs/en/quickstart.md) covers the rest.
 
 ## Run Locally
 
@@ -113,6 +125,50 @@ curl -X POST http://127.0.0.1:3000/api/v1/examples/tasks \
   -H 'Content-Type: application/json' \
   -d '{"name":"demo"}'
 ```
+
+Create two wallets and transfer between them. The debit, the credit, and the
+audit row commit or roll back together, so a failed transfer never moves half
+the money:
+
+```sh
+curl -X POST http://127.0.0.1:3000/api/v1/wallets \
+  -H 'Content-Type: application/json' -d '{"name":"alice","balance":100}'
+curl -X POST http://127.0.0.1:3000/api/v1/wallets \
+  -H 'Content-Type: application/json' -d '{"name":"bob","balance":0}'
+
+curl -X POST http://127.0.0.1:3000/api/v1/wallets/transfers \
+  -H 'Content-Type: application/json' -d '{"from_id":1,"to_id":2,"amount":50}'
+```
+
+Overdrawing the source wallet returns `INSUFFICIENT_BALANCE` (code `2002`).
+`GET /api/v1/wallets` serves from Redis when it is configured and falls back to
+the database when it is not.
+
+## Transactions
+
+Use a transaction when one request must change several rows and a half-applied
+result would be a bug. Money leaving one wallet and landing in another is the
+classic case, which is why the `Wallet` module exists.
+
+Inject `repository.TxRunner` as a `service.TransactionRunner` and wrap the
+multi-row work in its callback:
+
+```go
+err := s.tx.InTx(ctx, func(txCtx context.Context) error {
+	if err := s.repo.Debit(txCtx, req.FromID, req.Amount); err != nil {
+		return err
+	}
+	return s.repo.Credit(txCtx, req.ToID, req.Amount)
+})
+```
+
+Returning `nil` commits, returning an error rolls back, and every repository
+method joins the transaction automatically because it resolves its handle
+through `dbFromContext`. The service never imports GORM.
+
+Full walkthrough — the three callback rules, nested transactions, error
+mapping, and the SQL guard that prevents concurrent overdrafts:
+**[Transactions](docs/en/transactions.md)**.
 
 ## Startup Flow
 

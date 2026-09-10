@@ -1,9 +1,9 @@
 # Quick Start
 
-This page answers the four questions you will have right after cloning the
+This page answers the five questions you will have right after cloning the
 repository: where to write a route, where to define a table, where to write
-business logic, and how to use transactions. Every answer points to a real
-file with code you can copy.
+business logic, how to use transactions, and how to use the cache. Every
+answer points to a real file with code you can copy.
 
 ## Where Things Live
 
@@ -20,6 +20,11 @@ file with code you can copy.
 | `pkg/response/` | Unified response envelope |
 
 The flow of a request: `router → handler → service → repository → Postgres`.
+
+Two reference flows ship with the skeleton. `Example` shows the baseline
+`handler → service → repository` path plus async task publishing.
+`Wallet` builds on it and adds the two things `Example` does not cover:
+multi-row transactions and cache-aside reads.
 
 ## 1. Where to Write a Route
 
@@ -58,7 +63,9 @@ func (Example) TableName() string {
 }
 ```
 
-The table is created by `cmd/migrate` via GORM `AutoMigrate`.
+The table is created by `cmd/migrate` via GORM `AutoMigrate`. Add new models to
+that call — the wallet example registers both `model.Wallet` and
+`model.TransferRecord` there.
 
 ## 3. Where to Write Business Logic
 
@@ -111,77 +118,78 @@ service method that uses them.
 
 ## 4. How to Use Transactions
 
-Use a transaction when one business operation must change several rows and
-all of them have to succeed or fail together — a wallet transfer is the
-classic case: money leaves one account and lands in another, and you never
-want only half of that to happen.
+Use a transaction when one business operation must change several rows and all
+of them have to succeed or fail together — a wallet transfer is the classic
+case.
 
-The skeleton provides `repository.TxRunner`, injected into services through
-the `service.TransactionRunner` interface. The skeleton's `WalletService`
-shows the pattern end to end.
+The short version: inject `repository.TxRunner` as a
+`service.TransactionRunner`, wrap the multi-row work in its `InTx` callback,
+and pass the callback's `txCtx` to every repository call.
 
-The service holds a `TransactionRunner` and wraps the multi-row work in its
-`InTx` callback:
+```go
+err := s.tx.InTx(ctx, func(txCtx context.Context) error {
+	if err := s.repo.Debit(txCtx, req.FromID, req.Amount); err != nil {
+		return err
+	}
+	return s.repo.Credit(txCtx, req.ToID, req.Amount)
+})
+```
+
+Returning `nil` commits; returning an error rolls back. The repository methods
+need no changes, because each one resolves its handle through `dbFromContext`,
+which transparently uses the transaction carried in the context.
+
+→ **[Transactions](transactions.md)** has the full pattern: the three rules for
+the callback, why repositories stay untouched, nested transactions, error
+mapping, and the SQL guard that stops concurrent overdrafts.
+
+## 5. How to Use the Cache (Cache-Aside)
+
+Redis is optional: when `REDIS_ADDR` is set, `bootstrap` builds a
+`*cache.Client`, and when it is not, the same code path has to keep working.
+The wallet list read shows the pattern — hit → serve the cached value; miss →
+load from the database and fill the cache.
 
 ```go
 // internal/service/wallet.go
-type WalletService struct {
-	repo WalletRepository
-	tx   TransactionRunner
-}
-
-func (s *WalletService) Transfer(ctx context.Context, req *TransferReq) (*TransferRes, error) {
-	if req.FromUserID == req.ToUserID {
-		return nil, errcode.InvalidParams
+func (s *WalletService) List(ctx context.Context, req *ListWalletsReq) (*ListWalletsRes, error) {
+	key := s.listKey(ctx, req.Limit, req.Offset)
+	if s.cache != nil {
+		if cached, err := s.cache.Get(ctx, key); err == nil && cached != "" {
+			var wallets []model.Wallet
+			if err := json.Unmarshal([]byte(cached), &wallets); err == nil {
+				return &ListWalletsRes{Wallets: wallets}, nil
+			}
+		}
 	}
 
-	err := s.tx.InTx(ctx, func(txCtx context.Context) error {
-		if err := s.repo.AddBalance(txCtx, req.FromUserID, -req.Amount); err != nil {
-			return err
-		}
-		return s.repo.AddBalance(txCtx, req.ToUserID, req.Amount)
-	})
+	wallets, err := s.repo.List(ctx, req.Limit, req.Offset)
 	if err != nil {
 		return nil, errcode.DatabaseError
 	}
-	return &TransferRes{Success: true}, nil
+
+	if s.cache != nil {
+		if raw, err := json.Marshal(wallets); err == nil {
+			_ = s.cache.Set(ctx, key, string(raw), walletCacheTTL)
+		}
+	}
+	return &ListWalletsRes{Wallets: wallets}, nil
 }
 ```
 
-The two `AddBalance` calls are the debit and the credit. Both run inside one
-transaction:
+Two things make this safe to copy:
 
-- the debit succeeds and the credit fails → the debit is rolled back, the
-  transfer returns an error, no money moves;
-- both succeed → the transaction commits.
-
-The repository methods are unchanged — each one already goes through
-`dbFromContext`, which transparently uses the transaction from the context
-when present and the plain connection otherwise:
-
-```go
-// internal/repository/wallet.go
-func (r *WalletRepository) AddBalance(ctx context.Context, userID uint64, delta int64) error {
-	return dbFromContext(ctx, r.db).WithContext(ctx).
-		Model(&model.Wallet{}).
-		Where("user_id = ?", userID).
-		UpdateColumn("balance", gorm.Expr("balance + ?", delta)).Error
-}
-```
-
-Nested `InTx` calls join the outer transaction instead of opening a new one,
-so composing transactions inside transactions is safe.
-
-The wiring lives in `internal/server.go`: the repository and the `TxRunner`
-are both built from the database connection and passed into the service.
-
-```go
-walletRepository := repository.NewWalletRepository(db)
-walletService := service.NewWalletService(walletRepository, repository.NewTxRunner(db))
-```
+- **The cache is a `nil`-able interface.** The service declares `WalletCache`
+  itself, and `internal/server.go` adapts `*cache.Client` to it, returning
+  `nil` when Redis is not configured. Every use site is guarded, so the
+  service never gains a hard dependency on Redis, and unit tests inject a map
+  in place of Redis.
+- **Invalidation is versioned.** Writes bump `wallet:list:version`, and every
+  list key embeds that version. One `Set` therefore invalidates all cached
+  lists at once, with no key scanning or deletion.
 
 ## Wiring
 
 `internal/server.go` assembles repository → service → handler. Follow the
-existing `Example` wiring to connect your new pieces, and the route group from
-step 1 picks them up.
+existing `Example` and `Wallet` wiring to connect your new pieces, and the
+route group from step 1 picks them up.

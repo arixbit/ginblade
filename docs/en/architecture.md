@@ -52,8 +52,9 @@ picks this repository up as the starting point of a real service.
 - **`cmd/api`** — serves HTTP. Requires Postgres; Redis and JWT are optional.
 - **`cmd/worker`** — consumes Asynq tasks. Requires Redis; Postgres is
   optional (only needed by handlers that touch the database).
-- **`cmd/migrate`** — runs GORM `AutoMigrate` for the example table. In the
-  Compose stack it runs once and exits before `api`/`worker` start.
+- **`cmd/migrate`** — runs GORM `AutoMigrate` for the example and wallet
+  tables. In the Compose stack it runs once and exits before `api`/`worker`
+  start.
 
 Each process follows the same startup sequence:
 
@@ -88,15 +89,60 @@ Rules:
 - **`handler` never touches the database or the queue directly.** It only
   calls the service and maps errors to the response envelope.
 - **`service` defines the interfaces it consumes** (`ExampleRepository`,
-  `ExampleQueue`). The concrete implementations are injected by `bootstrap`.
-  This is the consumer-defines-interface pattern and it is what makes the
-  service layer unit-testable without a database.
+  `ExampleQueue`, `WalletRepository`, `WalletCache`, `TransactionRunner`). The
+  concrete implementations are injected by `bootstrap`. This is the
+  consumer-defines-interface pattern and it is what makes the service layer
+  unit-testable without a database.
 - **`repository` knows GORM, nothing else.** Transaction support is carried
   through the context: `InTx` starts a transaction (or joins an existing one
   from the context), `dbFromContext` transparently uses the active
   transaction inside repositories.
 - **`worker` handlers receive `Deps`** (DB, cache, Redis client, queue) as a
   struct, mirroring the handler-layer injection style.
+
+### Where Each Capability Is Demonstrated
+
+| Capability | Reference flow | File |
+|---|---|---|
+| `handler → service → repository` request path | `Example` | `internal/service/example.go` |
+| Consumer-defined interfaces + injection | `Example` | `internal/service/example.go` |
+| Async task publishing with `trace_id` in the payload | `Example` | `internal/service/example.go`, `internal/task/example.go` |
+| Multi-row transaction orchestrated by the service | `Wallet` | `internal/service/wallet.go` |
+| Context-propagated transactions (`InTx` / `dbFromContext`) | `Wallet` | `internal/repository/tx.go`, `internal/repository/wallet.go` |
+| Repository sentinel errors mapped onto `errcode` | `Wallet` | `internal/service/wallet.go` |
+| Cache-aside reads with versioned invalidation | `Wallet` | `internal/service/wallet.go` |
+
+`Example` is the minimum shape a module needs. `Wallet` is that same shape
+with the two harder patterns — transactions and caching — filled in, which is
+why they are kept as two focused modules instead of being merged into one
+larger, noisier example.
+
+## Transactions and Caching
+
+`WalletService.Transfer` is the reference for any use case that must change
+several rows atomically. The contract has two halves:
+
+- **The service opens the transaction.** It calls `tx.InTx`, a
+  `service.TransactionRunner`. The concrete `repository.TxRunner` is built from
+  the `*gorm.DB` at the composition root and injected in `internal/server.go`,
+  so the service never imports GORM.
+- **The repository joins it.** Every repository method reads its handle from
+  `dbFromContext(ctx, r.db)`, which returns the transaction carried in the
+  context when there is one and the plain connection otherwise. Repository
+  methods therefore stay single-purpose and composable.
+
+Nested `InTx` calls join the outer transaction instead of opening a second one.
+Repository methods report domain failures (`ErrInsufficientBalance`,
+`ErrWalletNotFound`) as sentinel errors; the service translates them into
+`errcode` values, which keeps HTTP-ish error semantics out of the persistence
+layer.
+
+`WalletService.List` is the reference for cache-aside reads. It depends on a
+service-defined `WalletCache` interface that `internal/server.go` adapts from
+`*cache.Client` — and returns `nil` when Redis is not configured, so the same
+code path degrades to a plain database read. Invalidation is versioned: writes
+bump `wallet:list:version`, every list key embeds that version, and one `Set`
+therefore invalidates every cached list without scanning or deleting keys.
 
 ## Dependency Injection & Lifecycle
 
@@ -178,6 +224,12 @@ For an asynchronous feature, additionally:
 8. `internal/worker/handler.go` — the handler; register it in
    `RegisterHandlers`.
 9. `internal/service/` — enqueue the task (respect `queue.Available()`).
+
+When the flow must change several rows atomically, or should read through a
+cache, copy `Wallet` rather than `Example`: it also declares the
+`TransactionRunner` and `WalletCache` interfaces, maps repository sentinel
+errors to `errcode`, and registers its models in `cmd/migrate`. See
+[Transactions and Caching](#transactions-and-caching).
 
 ## Framework Coupling (why swapping Gin is cheap)
 

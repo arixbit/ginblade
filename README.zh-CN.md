@@ -10,7 +10,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/arixbit/ginblade)](https://github.com/arixbit/ginblade/commits)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/ginblade/security/dependabot)
 [![codecov](https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg)](https://codecov.io/gh/arixbit/ginblade)
-[English](./README.md) · [架构文档](./ARCHITECTURE.zh-CN.md) · [多语言集成指南](./I18N.zh-CN.md) · [文档站](https://arixbit.github.io/ginblade/)
+[English](./README.md) · [项目总览](./PROJECT-OVERVIEW.zh-CN.md) · [架构文档](./ARCHITECTURE.zh-CN.md) · [多语言集成指南](./I18N.zh-CN.md) · [文档站](https://arixbit.github.io/ginblade/)
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要清晰分层、多进程独立部署、且能从本地开发一路验证到 CI 的服务而设计。
 
@@ -26,6 +26,7 @@
 - [快速开始](#快速开始)
 - [配置说明](#配置说明)
 - [示例 API](#示例-api)
+- [事务与缓存示例（Wallet）](#事务与缓存示例wallet)
 - [异步任务](#异步任务)
 - [健康检查](#健康检查)
 - [测试与 CI](#测试与-ci)
@@ -48,7 +49,7 @@
 
 | 领域 | 选型 |
 |---|---|
-| 语言 / 工具链 | Go 1.25（toolchain go1.25.5，Go ≥ 1.21 支持自动工具链切换） |
+| 语言 / 工具链 | Go 1.26（toolchain go1.26.5，Go ≥ 1.21 支持自动工具链切换） |
 | Web 框架 | Gin v1.10 |
 | ORM / 数据库 | GORM v1.30 + PostgreSQL（pgx v5） |
 | 异步任务 | Asynq v0.26（基于 Redis） |
@@ -56,7 +57,7 @@
 | JWT | golang-jwt/v5（HS256） |
 | 日志 | zap（JSON / console，含 trace_id） |
 | 参数校验 | go-playground/validator/v10 |
-| 容器 | 多阶段 Dockerfile（golang:1.25.5-alpine 构建 → alpine:3.22 运行，非 root `app` 用户） |
+| 容器 | 多阶段 Dockerfile（golang:1.26.5-alpine 构建 → alpine:3.22 运行，非 root `app` 用户） |
 | 编排 | Docker Compose（Postgres 17 + Redis 7 + migrate + api + worker） |
 
 ## 目录结构
@@ -70,9 +71,9 @@
 ├── internal/
 │   ├── bootstrap/          # 进程级资源初始化与生命周期（Registry）
 │   ├── handler/            # HTTP 层：绑定/校验请求、调 service、统一响应
-│   ├── service/            # 业务层：定义 repository/queue 接口（依赖倒置）
+│   ├── service/            # 业务层：定义 repository/queue 接口（依赖倒置）；Wallet 演示事务与 cache-aside
 │   ├── repository/         # 持久化：GORM + context 级事务（InTx/WithTx）
-│   ├── model/              # GORM 表模型（examples）
+│   ├── model/              # GORM 表模型（examples / wallets / transfer_records）
 │   ├── router/             # 路由注册（按配置自动跳过可选模块）
 │   ├── middleware/         # trace 日志、恢复、超时、CORS、JWT、IP 限流
 │   ├── task/               # 异步任务定义（payload、类型、构造）
@@ -120,7 +121,7 @@ make compose-down
 
 ### 方式 B：本地开发
 
-前置要求：Go ≥ 1.25、Postgres、Redis（Redis 可选，见[配置说明](#配置说明)）。
+前置要求：Go ≥ 1.26、Postgres、Redis（Redis 可选，见[配置说明](#配置说明)）。
 
 ```sh
 cp .env.example .env
@@ -185,6 +186,10 @@ go run ./cmd/worker
 | GET | `/api/v1/examples` | 分页列表 `?limit=&offset=` | 无 |
 | POST | `/api/v1/examples` | 创建示例（`{"name": "..."}`） | 无 |
 | POST | `/api/v1/examples/tasks` | 发布异步任务（`{"name": "..."}`） | 无 |
+| GET | `/api/v1/wallets` | 钱包列表（配置 Redis 时走 cache-aside） `?limit=&offset=` | 无 |
+| POST | `/api/v1/wallets` | 创建钱包（`{"name":"alice","balance":100}`） | 无 |
+| GET | `/api/v1/wallets/:id` | 查询单个钱包（不存在返回 `NOT_FOUND`） | 无 |
+| POST | `/api/v1/wallets/transfers` | 转账（`{"from_id":1,"to_id":2,"amount":50}`） | 无 |
 
 签发 Token：
 
@@ -227,6 +232,40 @@ curl -X POST http://127.0.0.1:3000/api/v1/examples/tasks \
 | 9002 | `DATABASE_ERROR` | 数据库操作失败 |
 | 9003 | `QUEUE_UNAVAILABLE` | 队列未配置 |
 | 9004 | `QUEUE_ERROR` | 任务发布失败 |
+| 2001 | `NOT_FOUND` | 请求的资源不存在 |
+| 2002 | `INSUFFICIENT_BALANCE` | 转账余额不足 |
+
+## 事务与缓存示例（Wallet）
+
+`Wallet` 模块的首要目的是**把"事务怎么用"讲清楚并且可抄**——事务是事后最难补的一环，所以它值得有一个完整的范例。同时它顺带示范了 cache-aside 缓存。
+
+完整的事务写法（回调的三条规则、嵌套事务、错误映射、防并发透支的 SQL 条件）见 **[事务](docs/zh/transactions.md)**。下面是要点摘要。
+
+`Wallet` 模块在 `Example` 的基础上补了两个骨架内建、但 `Example` 没演示的能力：
+
+1. **Service 层事务编排** —— `WalletService.Transfer` 通过注入的 `TransactionRunner`（`repository.TxRunner` 绑定 DB 句柄）在一个事务里完成三步：`Debit` 扣款、`Credit` 入账、`CreateTransferRecord` 写审计记录。任何一步失败，三步一起回滚。Repository 只暴露单条原子操作，靠 `dbFromContext` 透明加入调用方的事务。
+2. **Cache-aside 读** —— `WalletService.List` 在配置了 Redis 时先读缓存：命中直接返回，未命中查库并回填。写操作会 bump 一个列表版本号，所有缓存的列表 key 都嵌了这个版本号，因此一次 `Set` 就能让全部列表缓存失效。
+
+`Debit` 把余额判断放进 SQL 的 `WHERE` 条件（`id = ? AND balance >= ?`），让"检查 + 更新"成为原子操作，两个并发转账不可能把同一个钱包扣穿。
+
+```sh
+# 创建两个钱包（带上初始余额）
+curl -X POST http://127.0.0.1:3000/api/v1/wallets \
+  -H 'Content-Type: application/json' -d '{"name":"alice","balance":100}'
+curl -X POST http://127.0.0.1:3000/api/v1/wallets \
+  -H 'Content-Type: application/json' -d '{"name":"bob","balance":0}'
+
+# 转账 50：alice -> bob
+curl -X POST http://127.0.0.1:3000/api/v1/wallets/transfers \
+  -H 'Content-Type: application/json' -d '{"from_id":1,"to_id":2,"amount":50}'
+
+# 余额不足时返回 INSUFFICIENT_BALANCE (2002)
+curl -X POST http://127.0.0.1:3000/api/v1/wallets/transfers \
+  -H 'Content-Type: application/json' -d '{"from_id":2,"to_id":1,"amount":9999}'
+
+# 列表读取（配置 Redis 时走缓存）
+curl 'http://127.0.0.1:3000/api/v1/wallets?limit=20'
+```
 
 ## 异步任务
 
@@ -296,7 +335,7 @@ curl -X POST http://127.0.0.1:3000/api/v1/examples/tasks \
 骨架约定：业务错误用信封内的 `code` 表达，HTTP 状态码仅用于传输层语义（健康检查、超时等）。这是可配置的团队约定，按需调整即可。
 
 **Q：如何新增一个业务模块？**
-照抄 `Example` 五件套：`model` → `repository`（含接口）→ `service` → `handler` → `router` 注册；异步流程再加 `task` 定义与 `worker` 处理器，并在 `internal/server.go` / `internal/worker.go` 中接线。
+照抄 `Example` 五件套：`model` → `repository`（含接口）→ `service` → `handler` → `router` 注册；异步流程再加 `task` 定义与 `worker` 处理器，并在 `internal/server.go` / `internal/worker.go` 中接线。需要**多行事务**或 **cache-aside 缓存**时，直接对照 `Wallet`（`internal/{model,repository,service,handler}/wallet.go`）——它把 `TransactionRunner` 注入、哨兵错误映射到 `errcode`、以及可空 `WalletCache` 的接法都示范了一遍。更多细节见[快速上手](docs/zh/quickstart.md)。
 
 **Q：本地 Go 版本比 go.mod 低怎么办？**
 默认 `GOTOOLCHAIN=auto` 会自动下载并使用所需工具链；或执行 `go get go@<版本>` 手动升级 go.mod 的 `go`/`toolchain` 行（Docker 构建需同步更新 builder 镜像版本）。

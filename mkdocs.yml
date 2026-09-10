@@ -62,6 +62,12 @@ plugins:
           default: true
         - locale: zh
           name: 中文
+          nav_translations:
+            Home: 首页
+            Quick Start: 快速上手
+            Transactions: 事务
+            Architecture: 架构
+            i18n Guide: 多语言集成指南
 
 markdown_extensions:
   - admonition
@@ -78,7 +84,8 @@ markdown_extensions:
   - footnotes
 
 nav:
-  - index.md
+  - Home: index.md
   - Quick Start: quickstart.md
+  - Transactions: transactions.md
   - Architecture: architecture.md
   - i18n Guide: i18n-guide.md
