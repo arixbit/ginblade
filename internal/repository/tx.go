@@ -58,3 +58,23 @@ func normalizeContext(ctx context.Context) context.Context {
 	}
 	return ctx
 }
+
+// TxRunner runs callbacks inside a database transaction. It satisfies the
+// service-layer TransactionRunner interface while keeping the *gorm.DB
+// dependency out of business logic.
+type TxRunner struct {
+	db *gorm.DB
+}
+
+// NewTxRunner creates a TxRunner bound to the given database connection.
+func NewTxRunner(db *gorm.DB) *TxRunner {
+	return &TxRunner{db: db}
+}
+
+// InTx executes fn inside a transaction, reusing an existing transaction in ctx.
+func (r *TxRunner) InTx(ctx context.Context, fn func(context.Context) error) error {
+	if r == nil || r.db == nil {
+		return errNilDB
+	}
+	return InTx(ctx, r.db, fn)
+}
