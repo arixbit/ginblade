@@ -1,9 +1,8 @@
 # Quick Start
 
-This page answers the four questions you will have right after cloning the
-repository: where to write a route, where to define a table, where to write
-business logic, and how to use transactions. Every answer points to a real
-file with code you can copy.
+This page answers the three questions you will have right after cloning the
+repository: where to write a route, where to define a table, and where to write
+business logic. Every answer points to a real file with code you can copy.
 
 ## Where Things Live
 
@@ -108,77 +107,6 @@ func (h *ExampleHandler) Create(c *gin.Context) {
 Return `errcode.Xxx` from services; the handler turns it into the response
 envelope. Request/response structs with `binding:` tags live next to the
 service method that uses them.
-
-## 4. How to Use Transactions
-
-Use a transaction when one business operation must change several rows and
-all of them have to succeed or fail together — a wallet transfer is the
-classic case: money leaves one account and lands in another, and you never
-want only half of that to happen.
-
-The skeleton provides `repository.TxRunner`, injected into services through
-the `service.TransactionRunner` interface. The skeleton's `WalletService`
-shows the pattern end to end.
-
-The service holds a `TransactionRunner` and wraps the multi-row work in its
-`InTx` callback:
-
-```go
-// internal/service/wallet.go
-type WalletService struct {
-	repo WalletRepository
-	tx   TransactionRunner
-}
-
-func (s *WalletService) Transfer(ctx context.Context, req *TransferReq) (*TransferRes, error) {
-	if req.FromUserID == req.ToUserID {
-		return nil, errcode.InvalidParams
-	}
-
-	err := s.tx.InTx(ctx, func(txCtx context.Context) error {
-		if err := s.repo.AddBalance(txCtx, req.FromUserID, -req.Amount); err != nil {
-			return err
-		}
-		return s.repo.AddBalance(txCtx, req.ToUserID, req.Amount)
-	})
-	if err != nil {
-		return nil, errcode.DatabaseError
-	}
-	return &TransferRes{Success: true}, nil
-}
-```
-
-The two `AddBalance` calls are the debit and the credit. Both run inside one
-transaction:
-
-- the debit succeeds and the credit fails → the debit is rolled back, the
-  transfer returns an error, no money moves;
-- both succeed → the transaction commits.
-
-The repository methods are unchanged — each one already goes through
-`dbFromContext`, which transparently uses the transaction from the context
-when present and the plain connection otherwise:
-
-```go
-// internal/repository/wallet.go
-func (r *WalletRepository) AddBalance(ctx context.Context, userID uint64, delta int64) error {
-	return dbFromContext(ctx, r.db).WithContext(ctx).
-		Model(&model.Wallet{}).
-		Where("user_id = ?", userID).
-		UpdateColumn("balance", gorm.Expr("balance + ?", delta)).Error
-}
-```
-
-Nested `InTx` calls join the outer transaction instead of opening a new one,
-so composing transactions inside transactions is safe.
-
-The wiring lives in `internal/server.go`: the repository and the `TxRunner`
-are both built from the database connection and passed into the service.
-
-```go
-walletRepository := repository.NewWalletRepository(db)
-walletService := service.NewWalletService(walletRepository, repository.NewTxRunner(db))
-```
 
 ## Wiring
 
