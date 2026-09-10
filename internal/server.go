@@ -15,6 +15,7 @@ import (
 	"github.com/arixbit/ginblade/internal/repository"
 	"github.com/arixbit/ginblade/internal/router"
 	"github.com/arixbit/ginblade/internal/service"
+	"github.com/arixbit/ginblade/pkg/cache"
 )
 
 var (
@@ -120,8 +121,11 @@ func newHTTPHandlers(reg *bootstrap.Registry) *HTTPHandlers {
 	exampleRepository := repository.NewExampleRepository(db)
 	exampleService := service.NewExampleService(exampleRepository, reg.Queue)
 
-	walletRepository := repository.NewWalletRepository(db)
-	walletService := service.NewWalletService(walletRepository, repository.NewTxRunner(db))
+	walletService := service.NewWalletService(
+		repository.NewWalletRepository(db),
+		walletCache(reg.Cache),
+		repository.NewTxRunner(db),
+	)
 
 	return &HTTPHandlers{
 		Auth:    handler.NewAuthHandler(reg.Auth),
@@ -129,6 +133,16 @@ func newHTTPHandlers(reg *bootstrap.Registry) *HTTPHandlers {
 		Example: handler.NewExampleHandler(exampleService),
 		Wallet:  handler.NewWalletHandler(walletService),
 	}
+}
+
+// walletCache adapts the concrete cache client to the service-defined
+// WalletCache interface, returning nil when Redis is not configured so the
+// service degrades to plain database reads.
+func walletCache(c *cache.Client) service.WalletCache {
+	if c == nil {
+		return nil
+	}
+	return c
 }
 
 func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.IPRateLimiter) (*gin.Engine, error) {

@@ -51,5 +51,8 @@ func registerWalletRoutes(r *gin.RouterGroup, deps Dependencies) {
 	}
 
 	wallets := r.Group("/wallets")
+	wallets.POST("", deps.Wallet.Create)
+	wallets.GET("", deps.Wallet.List)
+	wallets.GET("/:id", deps.Wallet.Get)
 	wallets.POST("/transfers", deps.Wallet.Transfer)
 }
