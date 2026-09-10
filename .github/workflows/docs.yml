@@ -7,12 +7,16 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
+      - 'ARCHITECTURE.md'
+      - 'ARCHITECTURE.zh-CN.md'
       - '.github/workflows/docs.yml'
   pull_request:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
+      - 'ARCHITECTURE.md'
+      - 'ARCHITECTURE.zh-CN.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -40,6 +44,20 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-docs.txt
+
+      - name: Verify site copies match the root docs
+        run: |
+          status=0
+          for pair in "ARCHITECTURE.md:docs/en/architecture.md" \
+                      "ARCHITECTURE.zh-CN.md:docs/zh/architecture.md"; do
+            src="${pair%%:*}"
+            dst="${pair##*:}"
+            if ! diff -u "$src" "$dst"; then
+              echo "::error file=$dst::$dst is out of sync with $src — copy $src over it."
+              status=1
+            fi
+          done
+          exit "$status"
 
       - name: Build site (strict)
         run: mkdocs build --strict
