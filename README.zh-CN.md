@@ -1,5 +1,14 @@
 # GinBlade · 中文使用介绍
 
+> **📍 你正在 `examples/transactions` 分支上。**
+>
+> 这个分支是一份独立、可运行的**事务模式**示例。它**刻意永不合并进 `main`**（main 保持最小骨架），所以这里的东西不是待办工作，而是"可以运行的文档"。
+>
+> - **从这里开始：**[事务](docs/zh/transactions.md) —— 什么时候真的需要事务、`InTx` 回调的三条规则、错误映射，以及防并发透支的 SQL 条件
+> - **看代码：**[`internal/service/wallet.go`](internal/service/wallet.go) —— 在同一个事务里完成扣款、入账、写审计记录的钱包模块
+> - **看原语：**[`internal/repository/tx.go`](internal/repository/tx.go)
+> - **回到基线：** `git switch main`
+
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/ginblade)](https://goreportcard.com/report/github.com/arixbit/ginblade)
@@ -10,7 +19,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/arixbit/ginblade)](https://github.com/arixbit/ginblade/commits)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-0366d6)](https://github.com/arixbit/ginblade/security/dependabot)
 [![codecov](https://codecov.io/gh/arixbit/ginblade/branch/main/graph/badge.svg)](https://codecov.io/gh/arixbit/ginblade)
-[English](./README.md) · [项目总览](./PROJECT-OVERVIEW.zh-CN.md) · [架构文档](./ARCHITECTURE.zh-CN.md) · [多语言集成指南](./I18N.zh-CN.md) · [文档站](https://arixbit.github.io/ginblade/)
+[English](./README.md) · [架构文档](./ARCHITECTURE.zh-CN.md) · [多语言集成指南](./I18N.zh-CN.md) · [文档站](https://arixbit.github.io/ginblade/)
 
 一个**有观点、可直接运行**的 Go 后端骨架，为需要清晰分层、多进程独立部署、且能从本地开发一路验证到 CI 的服务而设计。
 

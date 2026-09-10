@@ -1,6 +1,21 @@
 # GinBlade
 
-[中文文档](./README.zh-CN.md) · [Project Overview](./PROJECT-OVERVIEW.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
+> **📍 You are on the `examples/transactions` branch.**
+>
+> This branch is a standalone, runnable example of the **transaction pattern**.
+> It is deliberately **never merged into `main`**, which stays a minimal
+> skeleton — so nothing here is pending work, it is documentation you can run.
+>
+> - **Start here:** [Transactions](docs/en/transactions.md) — when you actually
+>   need a transaction, the three rules for the `InTx` callback, error mapping,
+>   and the SQL guard that stops concurrent overdrafts
+> - **The code:** [`internal/service/wallet.go`](internal/service/wallet.go) —
+>   a wallet module that orchestrates a debit, a credit, and an audit row inside
+>   one transaction
+> - **The primitive:** [`internal/repository/tx.go`](internal/repository/tx.go)
+> - **Back to the baseline:** `git switch main`
+
+[中文文档](./README.zh-CN.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
 
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
