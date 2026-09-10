@@ -35,7 +35,7 @@
 
 - **`cmd/api`** — 提供 HTTP 服务。必需 Postgres；Redis 与 JWT 可选。
 - **`cmd/worker`** — 消费 Asynq 任务。必需 Redis；Postgres 可选（仅当处理器需要访问数据库时）。
-- **`cmd/migrate`** — 对示例表执行 GORM `AutoMigrate`。在 Compose 栈中作为一次性任务，先于 `api`/`worker` 启动。
+- **`cmd/migrate`** — 对示例表与钱包表执行 GORM `AutoMigrate`。在 Compose 栈中作为一次性任务，先于 `api`/`worker` 启动。
 
 每个进程遵循相同的启动序列：
 
@@ -68,9 +68,34 @@ HTTP 壳层（耦合 Gin）
 规则：
 
 - **`handler` 不直接接触数据库或队列**，只调用 service 并将错误映射为响应信封。
-- **`service` 定义它消费的接口**（`ExampleRepository`、`ExampleQueue`），具体实现在 `bootstrap` 注入。这是"消费方定义接口"模式，也是 service 层无需数据库即可单元测试的原因。
+- **`service` 定义它消费的接口**（`ExampleRepository`、`ExampleQueue`、`WalletRepository`、`WalletCache`、`TransactionRunner`），具体实现在 `bootstrap` 注入。这是"消费方定义接口"模式，也是 service 层无需数据库即可单元测试的原因。
 - **`repository` 只认识 GORM**。事务能力通过 context 传递：`InTx` 开启事务（context 中已有事务则复用），`dbFromContext` 在 repository 内部透明使用当前事务。
 - **`worker` 处理器接收 `Deps` 结构体**（DB、缓存、Redis 客户端、队列），与 handler 层的注入风格一致。
+
+### 各项能力在哪儿示范
+
+| 能力 | 参考链路 | 文件 |
+|---|---|---|
+| `handler → service → repository` 请求路径 | `Example` | `internal/service/example.go` |
+| 消费方定义接口 + 注入 | `Example` | `internal/service/example.go` |
+| 异步任务发布，`trace_id` 写入载荷 | `Example` | `internal/service/example.go`、`internal/task/example.go` |
+| service 层编排的多行事务 | `Wallet` | `internal/service/wallet.go` |
+| 随 context 传递的事务（`InTx` / `dbFromContext`） | `Wallet` | `internal/repository/tx.go`、`internal/repository/wallet.go` |
+| repository 哨兵错误映射到 `errcode` | `Wallet` | `internal/service/wallet.go` |
+| cache-aside 读 + 版本号失效 | `Wallet` | `internal/service/wallet.go` |
+
+`Example` 是一个模块所需的最小形态；`Wallet` 是同一形态把两个更难的模式——事务与缓存——补齐后的样子。因此二者作为两个聚焦的模块并存，而不是合并成一个更大、更嘈杂的示例。
+
+## 事务与缓存
+
+`WalletService.Transfer` 是所有"必须原子地改动多行"的用例的参考。契约分两半：
+
+- **service 开启事务。** 它调用 `tx.InTx`，即 `service.TransactionRunner`。具体实现 `repository.TxRunner` 在组合根由 `*gorm.DB` 构建，并在 `internal/server.go` 注入，因此 service 永远不需要 import GORM。
+- **repository 加入事务。** 每个 repository 方法都通过 `dbFromContext(ctx, r.db)` 取句柄：context 中有事务就返回事务，否则返回普通连接。因此仓储方法保持单一职责且可组合。
+
+嵌套的 `InTx` 会加入外层事务，而不是另开一个。仓储方法把领域失败（`ErrInsufficientBalance`、`ErrWalletNotFound`）表达为哨兵错误，由 service 翻译成 `errcode`，从而不让 HTTP 语义渗进持久层。
+
+`WalletService.List` 是 cache-aside 读的参考。它依赖 service 自己声明的 `WalletCache` 接口，由 `internal/server.go` 从 `*cache.Client` 适配而来——Redis 未配置时返回 `nil`，于是同一段代码降级为普通查库。失效采用版本号：写操作 bump `wallet:list:version`，每个列表 key 都嵌该版本号，因此一次 `Set` 即可让全部列表缓存失效，无需扫描或删除 key。
 
 ## 依赖注入与生命周期
 
@@ -133,6 +158,8 @@ router → handler → service → repository → Postgres
 7. `internal/task/` — 任务类型常量、载荷结构体、构造函数。
 8. `internal/worker/handler.go` — 处理器；在 `RegisterHandlers` 中注册。
 9. `internal/service/` — 发布任务（尊重 `queue.Available()`）。
+
+当流程需要原子地改动多行，或需要走缓存读时，请参照 `Wallet` 而不是 `Example`：它还示范了如何声明 `TransactionRunner` 与 `WalletCache` 接口、把仓储哨兵错误映射为 `errcode`，以及在 `cmd/migrate` 中注册模型。详见下文「事务与缓存」一节。
 
 ## 框架耦合面（为什么换掉 Gin 成本很低）
 

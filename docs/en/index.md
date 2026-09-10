@@ -66,7 +66,7 @@ path verifiable from local development through CI.
 ## Start your first feature
 
 <div class="gb-cta">
-  <p>From cloning the repo to writing your first route, service method, model, and cross-table transaction — the on-ramp walks through each layer with real code from the skeleton.</p>
+  <p>From cloning the repo to writing your first route, service method, and model — the on-ramp walks through each layer with real code from the skeleton.</p>
   <a class="gb-btn gb-btn--primary" href="quickstart/">Read the Quick Start guide →</a>
 </div>
 
@@ -93,6 +93,7 @@ path verifiable from local development through CI.
 ## Dive deeper
 
 <div class="gb-next">
+  <a href="transactions.md"><div class="gb-next-label">🔒 Pattern</div><div class="gb-next-title">Transactions — commit or roll back several writes together</div></a>
   <a href="architecture.md"><div class="gb-next-label">📖 Read</div><div class="gb-next-title">Architecture — process model, layering, lifecycles</div></a>
   <a href="i18n-guide.md"><div class="gb-next-label">🌐 Guide</div><div class="gb-next-title">i18n — add request-language-aware messages</div></a>
   <a href="https://github.com/arixbit/ginblade"><div class="gb-next-label">⚡ Source</div><div class="gb-next-title">GitHub — clone, star, contribute</div></a>

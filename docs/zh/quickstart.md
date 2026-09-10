@@ -1,6 +1,6 @@
 # 快速上手
 
-本文回答你克隆仓库后立刻会问的四个问题：路由在哪儿写、表结构在哪儿定义、业务逻辑在哪儿写、事务怎么用。每个答案都指向真实文件，附可直接抄的代码。
+本文回答你克隆仓库后立刻会问的五个问题：路由在哪儿写、表结构在哪儿定义、业务逻辑在哪儿写、事务怎么用、缓存怎么用。每个答案都指向真实文件，附可直接抄的代码。
 
 ## 东西都放在哪
 
@@ -17,6 +17,8 @@
 | `pkg/response/` | 统一响应封装 |
 
 一次请求的流向：`router → handler → service → repository → Postgres`。
+
+骨架自带两条参考链路。`Example` 展示基础的 `handler → service → repository` 路径以及异步任务投递；`Wallet` 在它之上补了 `Example` 没覆盖的两件事：多行事务与 cache-aside 读。
 
 ## 1. 路由在哪儿写
 
@@ -54,7 +56,7 @@ func (Example) TableName() string {
 }
 ```
 
-表由 `cmd/migrate` 通过 GORM `AutoMigrate` 创建。
+表由 `cmd/migrate` 通过 GORM `AutoMigrate` 创建。新模型要注册到那次调用里——wallet 示例就把 `model.Wallet` 和 `model.TransferRecord` 都加进去了。
 
 ## 3. 业务逻辑在哪儿写
 
@@ -104,63 +106,59 @@ Service 里返回 `errcode.Xxx`，handler 负责把它变成响应信封。带 `
 
 ## 4. 事务怎么用
 
-什么时候需要事务：一次业务操作要改多行数据，而且必须**全部成功或全部失败**——转账就是最典型的例子。钱从 A 账户扣出、进到 B 账户，绝不能只发生一半。
+什么时候需要事务：一次业务操作要改多行数据，而且必须**全部成功或全部失败**——转账就是最典型的例子。
 
-骨架提供了 `repository.TxRunner`，通过 `service.TransactionRunner` 接口注入 service。骨架里的 `WalletService` 就是一个完整的例子。
+简短版：把 `repository.TxRunner` 以 `service.TransactionRunner` 注入，用它的 `InTx` 回调包住多行操作，并把回调里的 `txCtx` 传给每一次仓储调用。
 
-Service 持有 `TransactionRunner`，把多行操作包进它的 `InTx` 回调：
+```go
+err := s.tx.InTx(ctx, func(txCtx context.Context) error {
+	if err := s.repo.Debit(txCtx, req.FromID, req.Amount); err != nil {
+		return err
+	}
+	return s.repo.Credit(txCtx, req.ToID, req.Amount)
+})
+```
+
+返回 `nil` 即提交，返回 error 即回滚。Repository 方法一行都不用改，因为每个方法都通过 `dbFromContext` 取句柄，它会自动使用 context 中携带的事务。
+
+→ **[事务](transactions.md)** 有完整写法：回调的三条规则、为什么仓储层不用动、嵌套事务、错误映射，以及阻止并发透支的 SQL 条件。
+
+## 5. 缓存怎么用（Cache-Aside）
+
+Redis 是可选依赖：设了 `REDIS_ADDR` 时 `bootstrap` 会构建 `*cache.Client`，没设时同一段代码必须照常工作。钱包列表读就是示范——命中就直接返回缓存值，未命中则查库并回填缓存。
 
 ```go
 // internal/service/wallet.go
-type WalletService struct {
-	repo WalletRepository
-	tx   TransactionRunner
-}
-
-func (s *WalletService) Transfer(ctx context.Context, req *TransferReq) (*TransferRes, error) {
-	if req.FromUserID == req.ToUserID {
-		return nil, errcode.InvalidParams
+func (s *WalletService) List(ctx context.Context, req *ListWalletsReq) (*ListWalletsRes, error) {
+	key := s.listKey(ctx, req.Limit, req.Offset)
+	if s.cache != nil {
+		if cached, err := s.cache.Get(ctx, key); err == nil && cached != "" {
+			var wallets []model.Wallet
+			if err := json.Unmarshal([]byte(cached), &wallets); err == nil {
+				return &ListWalletsRes{Wallets: wallets}, nil
+			}
+		}
 	}
 
-	err := s.tx.InTx(ctx, func(txCtx context.Context) error {
-		if err := s.repo.AddBalance(txCtx, req.FromUserID, -req.Amount); err != nil {
-			return err
-		}
-		return s.repo.AddBalance(txCtx, req.ToUserID, req.Amount)
-	})
+	wallets, err := s.repo.List(ctx, req.Limit, req.Offset)
 	if err != nil {
 		return nil, errcode.DatabaseError
 	}
-	return &TransferRes{Success: true}, nil
+
+	if s.cache != nil {
+		if raw, err := json.Marshal(wallets); err == nil {
+			_ = s.cache.Set(ctx, key, string(raw), walletCacheTTL)
+		}
+	}
+	return &ListWalletsRes{Wallets: wallets}, nil
 }
 ```
 
-两次 `AddBalance` 分别是扣款和入账，都在同一个事务里：
+有两点让这段代码可以直接抄：
 
-- 扣款成功、入账失败 → 扣款回滚，转账返回错误，钱一分没动；
-- 两步都成功 → 事务提交。
-
-Repository 方法本身不用改——每个方法都走 `dbFromContext`，它会在 context 里有事务时自动用事务，没有时用普通连接：
-
-```go
-// internal/repository/wallet.go
-func (r *WalletRepository) AddBalance(ctx context.Context, userID uint64, delta int64) error {
-	return dbFromContext(ctx, r.db).WithContext(ctx).
-		Model(&model.Wallet{}).
-		Where("user_id = ?", userID).
-		UpdateColumn("balance", gorm.Expr("balance + ?", delta)).Error
-}
-```
-
-嵌套的 `InTx` 会加入外层事务而不是另开一个，所以事务里再套事务是安全的。
-
-装配在 `internal/server.go`：repository 和 `TxRunner` 都从数据库连接构建，一起传给 service。
-
-```go
-walletRepository := repository.NewWalletRepository(db)
-walletService := service.NewWalletService(walletRepository, repository.NewTxRunner(db))
-```
+- **缓存是一个可空的接口。** service 自己声明 `WalletCache`，`internal/server.go` 把 `*cache.Client` 适配成它，Redis 未配置时返回 `nil`。每个使用点都做了判空，所以 service 不会对 Redis 产生硬依赖，单测里可以用一个 map 顶替 Redis。
+- **失效用版本号。** 写操作会 bump `wallet:list:version`，而每个列表 key 都嵌了这个版本号。因此一次 `Set` 就能让所有已缓存的列表同时失效，不需要扫描或删除 key。
 
 ## 组装
 
-`internal/server.go` 组装 repository → service → handler。照着现有 `Example` 的接线方式把你的新组件接进去，第 1 步的路由组就生效了。
+`internal/server.go` 组装 repository → service → handler。照着现有 `Example` 和 `Wallet` 的接线方式把你的新组件接进去，第 1 步的路由组就生效了。

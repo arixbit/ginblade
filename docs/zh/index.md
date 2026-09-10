@@ -65,7 +65,7 @@ hide:
 ## 从第一个功能开始
 
 <div class="gb-cta">
-  <p>从克隆仓库到写出第一条路由、第一个 Service 方法、第一个 Model 和跨表事务——上手教程逐层讲解，全部使用骨架内的真实代码。</p>
+  <p>从克隆仓库到写出第一条路由、第一个 Service 方法、第一个 Model——上手教程逐层讲解，全部使用骨架内的真实代码。</p>
   <a class="gb-btn gb-btn--primary" href="quickstart/">阅读快速上手教程 -></a>
 </div>
 
@@ -92,6 +92,7 @@ hide:
 ## 深入了解
 
 <div class="gb-next">
+  <a href="transactions.md"><div class="gb-next-label">🔒 模式</div><div class="gb-next-title">事务 - 让多行写入一起提交或一起回滚</div></a>
   <a href="architecture.md"><div class="gb-next-label">📖 阅读</div><div class="gb-next-title">架构文档 - 进程模型、分层、生命周期</div></a>
   <a href="i18n-guide.md"><div class="gb-next-label">🌐 指南</div><div class="gb-next-title">多语言 - 按请求者语言下发提示语</div></a>
   <a href="https://github.com/arixbit/ginblade"><div class="gb-next-label">⚡ 源码</div><div class="gb-next-title">GitHub - 克隆、Star、贡献</div></a>
