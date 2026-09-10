@@ -20,4 +20,9 @@ var (
 	QueueUnavailable = newError(9003, "QUEUE_UNAVAILABLE")
 	// QueueError wraps async task publishing failures exposed by services.
 	QueueError = newError(9004, "QUEUE_ERROR")
+
+	// NotFound means the requested resource does not exist.
+	NotFound = newError(2001, "NOT_FOUND")
+	// InsufficientBalance means a transfer would overdraw the source wallet.
+	InsufficientBalance = newError(2002, "INSUFFICIENT_BALANCE")
 )
