@@ -11,6 +11,7 @@ type Config struct {
 	Cors      CorsConfig
 	Log       LogConfig
 	RateLimit RateLimitConfig
+	I18n      I18nConfig
 }
 
 // ServerConfig holds HTTP server settings.
@@ -63,4 +64,9 @@ type LogConfig struct {
 // RateLimitConfig holds per-IP rate limit settings.
 type RateLimitConfig struct {
 	RequestsPerMinute int
+}
+
+// I18nConfig holds response message localization settings.
+type I18nConfig struct {
+	DefaultLocale string
 }

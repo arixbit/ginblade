@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/internal/locales"
+	"github.com/arixbit/ginblade/pkg/i18n"
 )
 
 func init() {
@@ -21,6 +23,16 @@ func newTestContext() (*gin.Context, *httptest.ResponseRecorder) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	return c, w
+}
+
+// setLocalizer does what the Locale middleware does for a request in locale.
+func setLocalizer(t *testing.T, c *gin.Context, locale string) {
+	t.Helper()
+	tr, err := i18n.New(locales.FS, "en")
+	if err != nil {
+		t.Fatalf("i18n.New: %v", err)
+	}
+	c.Set("localizer", tr.Localizer(locale))
 }
 
 func TestSuccessResponse(t *testing.T) {
@@ -36,6 +48,7 @@ func TestSuccessResponse(t *testing.T) {
 func TestErrorResponse(t *testing.T) {
 	c, _ := newTestContext()
 	c.Set("trace_id", "trace-1")
+	setLocalizer(t, c, "en")
 
 	res := ErrorResponse(c, errcode.InvalidParams)
 	if res.Code != errcode.InvalidParams.Code() {
@@ -129,7 +142,9 @@ func TestWriteValidationError(t *testing.T) {
 	}
 }
 
-func TestMessageFor(t *testing.T) {
+func TestEnglishMessages(t *testing.T) {
+	c, _ := newTestContext()
+	setLocalizer(t, c, "en")
 	cases := map[string]string{
 		"INVALID_PARAMS":    "invalid request parameters",
 		"UNAUTHORIZED":      "unauthorized",
@@ -142,9 +157,30 @@ func TestMessageFor(t *testing.T) {
 		"UNKNOWN_REASON":    "operation failed",
 	}
 	for reason, want := range cases {
-		if got := messageFor(reason); got != want {
-			t.Errorf("messageFor(%q) = %q, want %q", reason, got, want)
+		if got := localizer(c).Error(reason); got != want {
+			t.Errorf("Error(%q) = %q, want %q", reason, got, want)
 		}
+	}
+}
+
+func TestErrorResponseLocalized(t *testing.T) {
+	c, _ := newTestContext()
+	setLocalizer(t, c, "zh-CN")
+
+	res := ErrorResponse(c, errcode.InvalidParams)
+	if res.Message != "请求参数错误" {
+		t.Fatalf("Message = %q, want 请求参数错误", res.Message)
+	}
+	if res.Reason != "INVALID_PARAMS" {
+		t.Fatalf("Reason = %q, want INVALID_PARAMS regardless of locale", res.Reason)
+	}
+}
+
+func TestErrorResponseWithoutLocalizer(t *testing.T) {
+	c, _ := newTestContext()
+	res := ErrorResponse(c, errcode.Unauthorized)
+	if res.Message != "UNAUTHORIZED" {
+		t.Fatalf("Message = %q, want the reason when no Locale middleware ran", res.Message)
 	}
 }
 

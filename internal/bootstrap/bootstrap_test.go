@@ -71,6 +71,15 @@ func TestInitAuthEmptySecret(t *testing.T) {
 	}
 }
 
+func TestInitI18n(t *testing.T) {
+	if _, err := initI18n(&config.Config{I18n: config.I18nConfig{DefaultLocale: "en"}}); err != nil {
+		t.Fatalf("initI18n(en): %v", err)
+	}
+	if _, err := initI18n(&config.Config{I18n: config.I18nConfig{DefaultLocale: "fr"}}); err == nil {
+		t.Fatal("expected error for a default locale without a catalog")
+	}
+}
+
 func TestNewAsynqClientNilConfig(t *testing.T) {
 	if got := newAsynqClient(nil); got != nil {
 		t.Fatal("expected nil client for nil config")

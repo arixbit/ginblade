@@ -8,10 +8,12 @@ import (
 	"github.com/hibiken/asynq"
 
 	"github.com/arixbit/ginblade/config"
+	"github.com/arixbit/ginblade/internal/locales"
 	"github.com/arixbit/ginblade/internal/taskqueue"
 	"github.com/arixbit/ginblade/pkg/auth"
 	"github.com/arixbit/ginblade/pkg/cache"
 	"github.com/arixbit/ginblade/pkg/database"
+	"github.com/arixbit/ginblade/pkg/i18n"
 )
 
 // Registry holds shared runtime resources initialized at process startup.
@@ -21,6 +23,7 @@ type Registry struct {
 	Cache *cache.Client
 	Auth  *auth.JWTManager
 	Queue *taskqueue.Queue
+	I18n  *i18n.Translator
 
 	queueClient *asynq.Client
 }
@@ -81,6 +84,10 @@ func initAuth(cfg *config.Config) (*auth.JWTManager, error) {
 		Issuer: cfg.Auth.JWTIssuer,
 		TTL:    cfg.Auth.JWTTTL,
 	})
+}
+
+func initI18n(cfg *config.Config) (*i18n.Translator, error) {
+	return i18n.New(locales.FS, cfg.I18n.DefaultLocale)
 }
 
 func newAsynqClient(cfg *config.Config) *asynq.Client {

@@ -36,6 +36,7 @@ var allEnvKeys = []string{
 	"LOG_LEVEL", "LOG_FORMAT", "LOG_STACKTRACE_LEVEL",
 	"AUDIT_LOG_ENABLED", "AUDIT_LOG_EXCLUDE_PATHS",
 	"RATE_LIMIT_PER_MINUTE",
+	"I18N_DEFAULT_LOCALE",
 }
 
 func TestLoadDefaults(t *testing.T) {
@@ -85,6 +86,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RateLimit.RequestsPerMinute != 0 {
 		t.Errorf("RequestsPerMinute = %d, want 0", cfg.RateLimit.RequestsPerMinute)
 	}
+	if cfg.I18n.DefaultLocale != "en" {
+		t.Errorf("DefaultLocale = %q, want en", cfg.I18n.DefaultLocale)
+	}
 }
 
 func TestLoadFromEnv(t *testing.T) {
@@ -102,6 +106,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("CORS_ALLOW_ORIGINS", "a.com, b.com")
 	t.Setenv("TRUSTED_PROXIES", "10.0.0.1, 10.0.0.2")
 	t.Setenv("AUDIT_LOG_EXCLUDE_PATHS", "/health, /metrics")
+	t.Setenv("I18N_DEFAULT_LOCALE", "zh-CN")
 
 	cfg := Load()
 
@@ -125,6 +130,9 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.RateLimit.RequestsPerMinute != 100 {
 		t.Errorf("RequestsPerMinute = %d, want 100", cfg.RateLimit.RequestsPerMinute)
+	}
+	if cfg.I18n.DefaultLocale != "zh-CN" {
+		t.Errorf("DefaultLocale = %q, want zh-CN", cfg.I18n.DefaultLocale)
 	}
 	if len(cfg.Cors.AllowOrigins) != 2 || cfg.Cors.AllowOrigins[0] != "a.com" {
 		t.Errorf("AllowOrigins = %v, want [a.com b.com]", cfg.Cors.AllowOrigins)

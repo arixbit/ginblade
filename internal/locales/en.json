@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "INVALID_PARAMS": "invalid request parameters",
+    "UNAUTHORIZED": "unauthorized",
+    "PERMISSION_DENIED": "permission denied",
+    "TOO_MANY_REQUESTS": "too many requests",
+    "REQUEST_TIMEOUT": "request timeout",
+    "DATABASE_ERROR": "database error",
+    "QUEUE_UNAVAILABLE": "queue unavailable",
+    "QUEUE_ERROR": "queue error",
+    "default": "operation failed"
+  },
+  "validation": {
+    "required": "{field} is required",
+    "min": "{field} must be at least {param}",
+    "max": "{field} must be at most {param}",
+    "default": "{field} is invalid"
+  }
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"github.com/arixbit/ginblade/internal/errcode"
+	"github.com/arixbit/ginblade/pkg/i18n"
 	customvalidator "github.com/arixbit/ginblade/pkg/validator"
 )
 
@@ -31,7 +32,7 @@ func ErrorResponse(c *gin.Context, errorCode errcode.Error) Response {
 	return Response{
 		Code:     errorCode.Code(),
 		Reason:   reason,
-		Message:  messageFor(reason),
+		Message:  localizer(c).Error(reason),
 		Metadata: buildMetadata(c),
 	}
 }
@@ -40,7 +41,7 @@ func ErrorResponse(c *gin.Context, errorCode errcode.Error) Response {
 func BuildValidationErrorResponse(c *gin.Context, err error) Response {
 	msg := err.Error()
 	if errs, ok := err.(validator.ValidationErrors); ok {
-		msg = customvalidator.HandleValidatorError(errs)
+		msg = customvalidator.HandleValidatorError(localizer(c), errs)
 	}
 	return Response{
 		Code:     errcode.InvalidParams.Code(),
@@ -70,27 +71,12 @@ func WriteValidationError(c *gin.Context, err error) {
 	c.JSON(http.StatusOK, BuildValidationErrorResponse(c, err))
 }
 
-func messageFor(reason string) string {
-	switch reason {
-	case "INVALID_PARAMS":
-		return "invalid request parameters"
-	case "UNAUTHORIZED":
-		return "unauthorized"
-	case "PERMISSION_DENIED":
-		return "permission denied"
-	case "TOO_MANY_REQUESTS":
-		return "too many requests"
-	case "REQUEST_TIMEOUT":
-		return "request timeout"
-	case "DATABASE_ERROR":
-		return "database error"
-	case "QUEUE_UNAVAILABLE":
-		return "queue unavailable"
-	case "QUEUE_ERROR":
-		return "queue error"
-	default:
-		return "operation failed"
-	}
+// localizer returns the request's localizer stored by the Locale middleware.
+// Without one, the zero Localizer returns message keys unchanged.
+func localizer(c *gin.Context) i18n.Localizer {
+	v, _ := c.Get("localizer")
+	l, _ := v.(i18n.Localizer)
+	return l
 }
 
 func buildMetadata(c *gin.Context) map[string]any {

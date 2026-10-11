@@ -54,6 +54,9 @@ func Load() *Config {
 		RateLimit: RateLimitConfig{
 			RequestsPerMinute: intEnv("RATE_LIMIT_PER_MINUTE", 0),
 		},
+		I18n: I18nConfig{
+			DefaultLocale: getEnvOrDefault("I18N_DEFAULT_LOCALE", "en"),
+		},
 	}
 }
 

@@ -1,0 +1,19 @@
+{
+  "errors": {
+    "INVALID_PARAMS": "请求参数错误",
+    "UNAUTHORIZED": "未认证",
+    "PERMISSION_DENIED": "权限不足",
+    "TOO_MANY_REQUESTS": "请求过于频繁",
+    "REQUEST_TIMEOUT": "请求超时",
+    "DATABASE_ERROR": "数据库错误",
+    "QUEUE_UNAVAILABLE": "队列不可用",
+    "QUEUE_ERROR": "队列错误",
+    "default": "操作失败"
+  },
+  "validation": {
+    "required": "{field} 不能为空",
+    "min": "{field} 至少为 {param}",
+    "max": "{field} 至多为 {param}",
+    "default": "{field} 格式不正确"
+  }
+}

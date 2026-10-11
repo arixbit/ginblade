@@ -21,6 +21,7 @@ var (
 	errNilRegistry   = errors.New("app: nil registry")
 	errNilConfig     = errors.New("app: nil config")
 	errMissingDB     = errors.New("app: missing database")
+	errMissingI18n   = errors.New("app: missing i18n translator")
 	errNilHTTPServer = errors.New("app: nil http server")
 	errNilWorker     = errors.New("app: nil worker")
 )
@@ -109,6 +110,8 @@ func validateHTTPRegistry(reg *bootstrap.Registry) error {
 		return errNilConfig
 	case reg.DB == nil || reg.DB.DB() == nil:
 		return errMissingDB
+	case reg.I18n == nil:
+		return errMissingI18n
 	default:
 		return nil
 	}
@@ -133,6 +136,7 @@ func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.I
 	}
 
 	engine.Use(middleware.TraceLogger(reg.Cfg.Log.AuditEnabled, reg.Cfg.Log.AuditExcludes))
+	engine.Use(middleware.Locale(reg.I18n))
 	engine.Use(middleware.Recovery())
 	engine.Use(middleware.Timeout(reg.Cfg.Server.RequestTimeout))
 	engine.Use(middleware.CORS(reg.Cfg.Cors.AllowOrigins))

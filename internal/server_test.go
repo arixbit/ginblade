@@ -1,17 +1,25 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/arixbit/ginblade/config"
 	"github.com/arixbit/ginblade/internal/bootstrap"
+	"github.com/arixbit/ginblade/internal/locales"
 	"github.com/arixbit/ginblade/pkg/database"
+	"github.com/arixbit/ginblade/pkg/i18n"
 	applog "github.com/arixbit/ginblade/pkg/log"
+	"github.com/arixbit/ginblade/pkg/response"
 )
 
 func init() {
@@ -35,6 +43,57 @@ func TestValidateHTTPRegistry(t *testing.T) {
 	}
 	if err := validateHTTPRegistry(reg); err != errMissingDB {
 		t.Fatalf("nil db handle = %v, want errMissingDB", err)
+	}
+	reg = newTestRegistry(t)
+	reg.I18n = nil
+	if err := validateHTTPRegistry(reg); err != errMissingI18n {
+		t.Fatalf("missing translator = %v, want errMissingI18n", err)
+	}
+}
+
+// newTestRegistry returns a registry that passes validateHTTPRegistry without
+// a live database: the GORM handle is dry-run and never connects.
+func newTestRegistry(t *testing.T) *bootstrap.Registry {
+	t.Helper()
+	db, err := gorm.Open(postgres.Open("postgres://u:p@127.0.0.1:5432/db?sslmode=disable"), &gorm.Config{
+		DryRun:               true,
+		DisableAutomaticPing: true,
+	})
+	if err != nil {
+		t.Fatalf("gorm.Open dry run: %v", err)
+	}
+	tr, err := i18n.New(locales.FS, "en")
+	if err != nil {
+		t.Fatalf("i18n.New: %v", err)
+	}
+	return &bootstrap.Registry{
+		Cfg:  &config.Config{},
+		DB:   database.NewTestManager(db),
+		I18n: tr,
+	}
+}
+
+func TestNewServerLocalizesValidationErrors(t *testing.T) {
+	s, err := NewServer(newTestRegistry(t))
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/examples", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	rec := httptest.NewRecorder()
+	s.Engine.ServeHTTP(rec, req)
+
+	var body response.Response
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.Message != "name 不能为空" {
+		t.Errorf("msg = %q, want name 不能为空", body.Message)
+	}
+	if body.Reason != "INVALID_PARAMS" {
+		t.Errorf("reason = %q, want INVALID_PARAMS", body.Reason)
 	}
 }
 

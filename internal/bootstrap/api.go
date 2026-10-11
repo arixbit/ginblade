@@ -33,6 +33,11 @@ func InitAPI(cfg *config.Config) (*Registry, error) {
 		return nil, fmt.Errorf("init auth: %w", err)
 	}
 
+	translator, err := initI18n(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init i18n: %w", err)
+	}
+
 	validator.InitValidator()
 	queueClient := newAsynqClient(cfg)
 
@@ -42,6 +47,7 @@ func InitAPI(cfg *config.Config) (*Registry, error) {
 		Cache:       cacheClient,
 		Auth:        authManager,
 		Queue:       taskqueue.NewQueue(queueClient),
+		I18n:        translator,
 		queueClient: queueClient,
 	}, nil
 }
