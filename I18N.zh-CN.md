@@ -1,13 +1,6 @@
 # 多语言（i18n）集成指南
 
-GinBlade 不内置多语言。所有面向用户的文案都是英文硬编码，且对每个请求一视同仁。本文面向希望让 API 按请求者语言下发提示语的开发者，说明如何在不破坏现有分层与接口契约的前提下把它加进来。
-
-## 现状
-
-- `pkg/response/response.go` 的 `messageFor(reason)` 是一个纯英文 `switch`，按 errcode reason 返回文案。
-- `pkg/validator/validator.go` 的 `HandleValidatorError` 同样硬编码（`%s is required` 等），是字段校验消息的出口。
-- `internal/errcode` 的 `Error` 只有 `code` + `reason`，没有 locale 维度。
-- 没有任何中间件读取请求语言。
+本分支内置了 API 提示语的多语言：响应信封里的 `msg` 按请求者语言下发，接口契约的其余部分保持不变。（`main` 不内置多语言，本分支是可运行的参考实现。）本文说明它如何工作、语言文件放在哪里以及为什么，以及如何新增语言和文案。
 
 ## 核心原则：locale 只进消息层，不进 errcode
 
@@ -21,108 +14,88 @@ GinBlade 不内置多语言。所有面向用户的文案都是英文硬编码�
 
 把"契约"和"文案"分离，是不破坏现有接口就能加上 i18n 的关键。
 
-## 集成步骤
+## 工作方式
 
-下列代码片段展示推荐形态，并非可直接落地的完整实现。
-
-### 1. 新增 `pkg/i18n` 包
-
-放翻译表与查找逻辑，纯函数、不依赖 gin，便于单测：
-
-```go
-package i18n
-
-type Translator struct {
-    defaultLocale string
-    messages    map[string]map[string]string // locale -> reason -> 文案
-    fieldMsgs   map[string]map[string]string // locale -> validator tag -> 模板
-}
-
-func New(defaultLocale string, messages, fieldMsgs map[string]map[string]string) *Translator { /* ... */ }
-
-// Translate 按 locale 查找 errcode reason 的文案；locale 缺失回退 default，再缺失回退 reason 本身。
-func (t *Translator) Translate(locale, reason string) string { /* ... */ }
-
-// TranslateField 按 locale + validator tag 查模板并填入 field/param。
-func (t *Translator) TranslateField(locale, field, tag, param string) string { /* ... */ }
+```
+请求 ─▶ Locale 中间件 ─▶ c.Set("localizer", tr.Localizer(?lang, Accept-Language))
+                                  │
+handler/中间件报错 ─▶ pkg/response  ─▶ localizer.Error(reason)          ─▶ msg
+参数校验失败       ─▶ pkg/validator ─▶ localizer.Validation(tag, ...) ─▶ msg
 ```
 
-文案存代码内 `map`，不引外部 JSON 文件、不引 `go-i18n` 库。骨架规模下 map 最直接，新增语言就是加一个 map；等文案多到需要交给非工程同事维护，再升级为外部文件，`Translator` 接口不变。
+| 组成 | 职责 |
+|---|---|
+| `internal/locales/` | 语言文件（`en.json`、`zh-CN.json`），用 `//go:embed` 编译进二进制 |
+| `pkg/i18n` | 从任意 `fs.FS` 加载文件、匹配语言、查找文案；不依赖 Gin |
+| `internal/middleware/locale.go` | 解析请求语言，存入 `Localizer` |
+| `pkg/response`、`pkg/validator` | 读取 `Localizer` 填充 `msg` |
+| `internal/bootstrap` | `i18n.New(locales.FS, cfg.I18n.DefaultLocale)` → `Registry.I18n` |
 
-### 2. 新增 `internal/middleware/locale.go`
+`Locale` 挂在 `TraceLogger` 之后，所以 `Recovery`、`RateLimit`、`BearerAuth` 写出的错误同样会被翻译。handler 完全感知不到 locale。
 
-解析请求语言写入 `gin.Context`，与 `TraceLogger` 同范式：
+## 语言文件放在哪里，为什么
 
-```go
-func Locale(defaultLocale string) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        loc := c.Query("lang") // 1. query（便于联调时手动切换）
-        if loc == "" {
-            loc = parseAcceptLanguage(c.GetHeader("Accept-Language"), defaultLocale) // 2. header
-        }
-        if loc == "" {
-            loc = defaultLocale // 3. 兜底
-        }
-        c.Set("locale", loc)
-        c.Next()
-    }
-}
-```
+JSON 文件放在 `internal/locales/`，由同目录的 `locales.go` embed。选这里是因为三个约束：
 
-解析优先级：`?lang=` query > `Accept-Language` header > 配置默认值。query 便于联调时手动切语言，`Accept-Language` 是生产里浏览器/客户端的自然来源。`parseAcceptLanguage` 可用 `golang.org/x/text/language` 做带回退的标签匹配，或为固定的少量 locale 手写一个简易匹配器。
+1. **`//go:embed` 不能引用上级目录**（`../locales/*.json` 是非法模式），所以负责 embed 的包必须和文件在同一目录。
+2. **生产镜像里只有二进制。** `Dockerfile` 只复制 `/out/`，GoReleaser 只打包 `LICENSE` 和 `README.md`。用 embed，构建、部署、工作目录都不用改。
+3. **文案的 key 是这个应用自己的契约**，所以文件属于 `internal/`（和 `internal/errcode` 放在一起），可复用的机制放在 `pkg/i18n`——和 `pkg/response` + `internal/errcode` 的分法一致。
 
-挂载位置：在 `TraceLogger` 之后、业务 handler 之前——与 `trace_id` 一样是每请求上下文。
+如果放在根目录 `locales/`，要么在模块根目录加一个 Go 包（文案变成模块的公开 API），要么运行时读磁盘。`pkg/i18n` 只接收 `fs.FS`，将来如果需要不重新部署就改文案，在 bootstrap 里把 `locales.FS` 换成 `os.DirFS(dir)` 即可，其他代码不用动。
 
-### 3. 改 `pkg/response/response.go`
+## 文件格式
 
-让 `messageFor` 从 context 取 locale，经 `Translator` 查文案：
+每种语言一个文件，文件名用 BCP 47 标签（`en.json`、`zh-CN.json`）：
 
-```go
-func ErrorResponse(c *gin.Context, errorCode errcode.Error, tr *i18n.Translator) Response {
-    v, _ := c.Get("locale")
-    loc, _ := v.(string)
-    return Response{
-        Code:     errorCode.Code(),
-        Reason:   errorCode.Reason(), // 不变：语言无关契约
-        Message:  tr.Translate(loc, errorCode.Reason()),
-        Metadata: buildMetadata(c),
-    }
+```json
+{
+  "errors": {
+    "INVALID_PARAMS": "请求参数错误",
+    "default": "操作失败"
+  },
+  "validation": {
+    "required": "{field} 不能为空",
+    "min": "{field} 至少为 {param}",
+    "default": "{field} 格式不正确"
+  }
 }
 ```
 
-`errcode` 包、`Error` 结构、`Reason()` 均不动。
+- `errors` 的 key 用 errcode 的 **reason**，不用数字 code：可读，而且 reason 本来就是稳定契约。
+- `validation` 的 key 用 validator 的 tag；`{field}`、`{param}` 是命名占位符，翻译时可以随意调整语序。
+- 每一块里的 `default` 兜底没有单独条目的 reason 或 tag。
 
-### 4. 改 `pkg/validator/validator.go`
+查找顺序：请求语言里的 key → 默认语言里的 key → 请求语言里的 `default` → 默认语言里的 `default` → key 本身。路由上没有 `Locale` 中间件时，`msg` 就是原始 reason。
 
-给 `HandleValidatorError` 加 locale 与 `Translator` 参数，走 `TranslateField`；`response.BuildValidationErrorResponse` 从 `c` 取 locale 传入。
+## 语言解析
 
-### 5. 在 bootstrap 装配
+优先级：`?lang=` query > `Accept-Language` header > `I18N_DEFAULT_LOCALE`（默认 `en`）。匹配用 `golang.org/x/text/language`，所以会遵守 `q` 权重，`zh` 会匹配到 `zh-CN`，`en-GB` 会匹配到 `en`，排第一的语言不支持时会继续尝试下一个。
 
-- `internal/bootstrap/registry.go` ——给 `Registry` 加 `I18N *i18n.Translator` 字段。
-- `internal/bootstrap/api.go` ——在 `InitAPI` 构造 `Translator` 并放入。
-- `internal/server.go` ——把 translator 注入 response/validator 调用路径，并把 `Locale` 中间件挂到全局中间件链。
+注意 `zh-TW`、`zh-HK` 也会匹配到 `zh-CN`（现有语言里最接近的）。要提供繁体中文，加一个 `zh-TW.json` 即可。
 
-### 6. 配置
+## 常见操作
 
-在 `config/types.go` 增加：
-
-```go
-type I18nConfig struct {
-    DefaultLocale string   // 如 "en"
-    Supported     []string // 如 ["en","zh"]
-}
-```
-
-`Config` 结构体加 `I18n I18nConfig`。默认 locale 走配置，不写死。
+- **新增语言** —— 把 `en.json` 复制成 `internal/locales/<标签>.json` 并翻译值，会被自动加载。
+- **为新的 errcode 加文案** —— 在**每个**语言文件的 `errors` 里加上这个 reason。漏掉任何一个文件，CI 都会失败（见下文）。
+- **修改默认语言** —— 设置 `I18N_DEFAULT_LOCALE`。如果没有对应的语言文件，启动会直接失败。
 
 ## 测试
 
-- `pkg/i18n` ——表驱动测试覆盖：命中、locale 缺失回退 default、key 缺失回退 reason 本身。
-- locale 中间件 ——覆盖三级来源：query、header、默认。
-- `ErrorResponse` ——给定 locale，断言 `msg` 为对应语言、`reason` 不变。
+- `pkg/i18n` —— 基于内存 `fstest.MapFS` 的表驱动测试：加载错误、语言匹配、每一级回退。
+- `internal/locales` —— 加载真实语言文件，并断言**每个文件的 key 与 `en.json` 完全一致**。漏翻一条，CI 会报 `zh-CN.json is missing [errors.QUEUE_ERROR]`，而不是在线上悄悄回退。
+- `internal/middleware` —— 覆盖 query、header、默认三种来源；`reason` 始终不变。
+- `internal/server_test.go` —— 经过 `NewServer` 的端到端测试：`zh-CN` 请求发送空 body，得到 `msg: "name 不能为空"`。
+
+## 已知限制
+
+- 成功响应的 `msg` 仍是 `"success"`。
+- 不属于校验错误的绑定错误（比如 JSON 格式错误）仍然返回 Go 的原始错误文本。
+- 校验提示里的字段名是结构体字段名的小写形式，没有翻译。
+- 修改文案需要重新构建（或按上文换成 `os.DirFS`）。
+- worker 不做多语言。如果任务需要，参照 `trace_id` 的做法把 locale 写进任务载荷。
 
 ## 不建议的做法
 
 - **把 locale 塞进 `errcode.Error`。** 让 reason 随语言变，破坏机器可读契约。
 - **在 handler 内逐个翻译。** 与 `trace_id` 范式不一致，handler 不应感知 locale 解析。
-- **第一天就上 `go-i18n` + JSON 文件。** 骨架阶段文案量小，过早引入文件 IO 与额外依赖只有负担。
+- **默认从工作目录读取语言文件。** 镜像里只有二进制；先用 embed，确实需要热更新时再换成 `os.DirFS`。

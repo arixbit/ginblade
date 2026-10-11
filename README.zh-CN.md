@@ -1,5 +1,14 @@
 # GinBlade · 中文使用介绍
 
+> **📍 你正在 `examples/i18n` 分支上。**
+>
+> 这个分支是一份独立、可运行的**按请求语言下发提示语**示例。它**刻意永不合并进 `main`**（main 保持最小骨架），所以这里的东西不是待办工作，而是"可以运行的文档"。
+>
+> - **从这里开始：**[多语言集成指南](I18N.zh-CN.md) —— `msg` 如何跟随 `Accept-Language`、`reason` 如何保持稳定契约、语言文件为什么放在这里、如何新增语言
+> - **看文案：**[`internal/locales/`](internal/locales/) —— 编译进二进制的 `en.json` 与 `zh-CN.json`
+> - **看机制：**[`pkg/i18n/i18n.go`](pkg/i18n/i18n.go) 与 [`internal/middleware/locale.go`](internal/middleware/locale.go)
+> - **回到基线：** `git switch main`
+
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/github/go-mod/go-version/arixbit/ginblade?label=Go)](https://go.dev/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arixbit/ginblade)](https://goreportcard.com/report/github.com/arixbit/ginblade)
@@ -166,6 +175,7 @@ go run ./cmd/worker
 | `AUDIT_LOG_ENABLED` | 否 | `true` | 是否记录请求审计日志 |
 | `AUDIT_LOG_EXCLUDE_PATHS` | 否 | 空 | 审计日志排除路径（逗号分隔，默认建议 `/health`） |
 | `RATE_LIMIT_PER_MINUTE` | 否 | `0` | 每 IP 每分钟请求上限；`0` = 关闭 |
+| `I18N_DEFAULT_LOCALE` | 否 | `en` | 请求未指定语言时 `msg` 使用的语言；必须有对应的 `internal/locales/<标签>.json` |
 
 **各进程的依赖要求**：
 

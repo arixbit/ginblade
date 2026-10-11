@@ -62,7 +62,7 @@ Three independent binaries, each started by the same sequence:
 ```
 HTTP shell (Gin-coupled)
   handler      bind/validate the request, call the service, write the response
-  middleware   trace, recovery, timeout, CORS, auth, rate limit
+  middleware   trace, locale, recovery, timeout, CORS, auth, rate limit
   router       route registration (skips unconfigured optional modules)
 ───────────────────────────────────────────────────────────────
 Application core (framework-free)
@@ -73,9 +73,10 @@ Application core (framework-free)
   worker       Asynq server, handlers, trace middleware
   taskqueue    queue boundary wrapper
   errcode      business error codes
+  locales      embedded message catalogs (JSON)
 ───────────────────────────────────────────────────────────────
 Infrastructure (pkg/, reusable)
-  auth · cache · database · log · response · validator
+  auth · cache · database · i18n · log · response · validator
 ```
 
 Rules the code actually follows:
@@ -139,7 +140,7 @@ Treat those branches as documentation you can run, not as pending work.
 | POST | `/api/v1/examples` | `{"name":"..."}` |
 | POST | `/api/v1/examples/tasks` | Publishes an async task; needs Redis |
 
-Middleware chain: `TraceLogger → Recovery → Timeout → CORS → RateLimit`
+Middleware chain: `TraceLogger → Locale → Recovery → Timeout → CORS → RateLimit`
 (rate limit only when `RATE_LIMIT_PER_MINUTE > 0`).
 
 ### Response Envelope
@@ -181,7 +182,7 @@ All configuration comes from environment variables, read once by
 falls back to the repository-root `.env`.
 
 `config/types.go` groups values into `Server`, `Postgres`, `Redis`, `Auth`,
-`Cors`, `Log`, and `RateLimit`. **Redis and JWT are optional**: when they are
+`Cors`, `Log`, `RateLimit`, and `I18n`. **Redis and JWT are optional**: when they are
 unconfigured the related routes are not registered, `/health` reports
 `not_configured`, and everything else keeps working. See `.env.example` for the
 full list.

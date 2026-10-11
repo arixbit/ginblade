@@ -1,5 +1,21 @@
 # GinBlade
 
+> **📍 You are on the `examples/i18n` branch.**
+>
+> This branch is a standalone, runnable example of **request-language-aware
+> API messages**. It is deliberately **never merged into `main`**, which stays a
+> minimal skeleton — so nothing here is pending work, it is documentation you
+> can run.
+>
+> - **Start here:** [i18n Guide](I18N.md) — how `msg` follows
+>   `Accept-Language` while `reason` stays a stable contract, where the message
+>   files live and why, and how to add a language
+> - **The catalogs:** [`internal/locales/`](internal/locales/) — `en.json` and
+>   `zh-CN.json`, embedded into the binary
+> - **The mechanism:** [`pkg/i18n/i18n.go`](pkg/i18n/i18n.go) and
+>   [`internal/middleware/locale.go`](internal/middleware/locale.go)
+> - **Back to the baseline:** `git switch main`
+
 [中文文档](./README.zh-CN.md) · [Architecture](./ARCHITECTURE.md) · [i18n Guide](./I18N.md) · [Docs Site](https://arixbit.github.io/ginblade/)
 
 [![CI](https://github.com/arixbit/ginblade/actions/workflows/ci.yml/badge.svg)](https://github.com/arixbit/ginblade/actions/workflows/ci.yml)
@@ -138,6 +154,7 @@ flowchart TD
 - `CORS_ALLOW_ORIGINS` is a comma-separated allow list. Empty means no CORS allow headers.
 - Replace `JWT_SECRET` before using the auth example outside local development.
 - API business errors use the JSON envelope `code`, `msg`, and `reason`; most API errors are returned with HTTP 200 by convention.
+- `msg` follows `?lang=` or `Accept-Language`; `I18N_DEFAULT_LOCALE` (default `en`) applies otherwise and must have a matching `internal/locales/<tag>.json`. `reason` never changes with language.
 - `/health` uses real HTTP status codes and returns 503 when required dependencies are unavailable.
 
 ## Verify

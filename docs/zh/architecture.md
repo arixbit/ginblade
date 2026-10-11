@@ -49,7 +49,7 @@ config.LoadEnv → config.Load → bootstrap.InitRuntime → bootstrap.Init<进�
 ```
 HTTP 壳层（耦合 Gin）
   handler      解析/校验请求、调用 service、写响应
-  middleware   链路追踪、恢复、超时、CORS、认证、限流
+  middleware   链路追踪、语言解析、恢复、超时、CORS、认证、限流
   router       路由注册（未配置的可选模块自动跳过）
 ───────────────────────────────────────────────────────────────
 应用核心（框架无关）
@@ -60,9 +60,10 @@ HTTP 壳层（耦合 Gin）
   worker       Asynq 服务端、处理器、trace 中间件
   taskqueue    队列边界封装
   errcode      业务错误码
+  locales      内嵌的文案文件（JSON）
 ───────────────────────────────────────────────────────────────
 基础设施（pkg/，可复用）
-  auth · cache · database · log · response · validator
+  auth · cache · database · i18n · log · response · validator
 ```
 
 规则：
@@ -89,6 +90,7 @@ client
   │  X-Request-ID（可选）
   ▼
 TraceLogger  生成/透传 trace id；完成后记录审计日志
+Locale       选择 msg 语言：?lang= > Accept-Language > 默认
 Recovery      panic → errcode.InternalError 响应
 Timeout      附加 context 截止时间（REQUEST_TIMEOUT）
 CORS         白名单校验，OPTIONS 短路
@@ -148,8 +150,8 @@ internal/server.go pkg/response
 ```
 internal/service  internal/repository  internal/model
 internal/task     internal/taskqueue   internal/worker
-internal/bootstrap
-pkg/auth  pkg/cache  pkg/database  pkg/log  pkg/validator
+internal/bootstrap internal/locales
+pkg/auth  pkg/cache  pkg/database  pkg/i18n  pkg/log  pkg/validator
 ```
 
 业务规则、持久化、任务处理与基础设施助手均与框架无关。若标准库路由（Go 1.22+ 的 `http.ServeMux` 已支持方法匹配与路径通配符）或其他框架成为更优选择，迁移只需重写 HTTP 壳层——handler、middleware、router 与 `pkg/response`——应用核心保持不变。

@@ -52,7 +52,7 @@
 ```
 HTTP 壳层（耦合 Gin）
   handler      绑定/校验请求、调用 service、写响应
-  middleware   链路追踪、恢复、超时、CORS、认证、限流
+  middleware   链路追踪、语言解析、恢复、超时、CORS、认证、限流
   router       路由注册（未配置的可选模块自动跳过）
 ───────────────────────────────────────────────────────────────
 应用核心（框架无关）
@@ -63,9 +63,10 @@ HTTP 壳层（耦合 Gin）
   worker       Asynq 服务端、处理器、trace 中间件
   taskqueue    队列边界封装
   errcode      业务错误码
+  locales      内嵌的文案文件（JSON）
 ───────────────────────────────────────────────────────────────
 基础设施（pkg/，可复用）
-  auth · cache · database · log · response · validator
+  auth · cache · database · i18n · log · response · validator
 ```
 
 代码实际遵守的规则：
@@ -115,7 +116,7 @@ git switch examples/transactions
 | POST | `/api/v1/examples` | `{"name":"..."}` |
 | POST | `/api/v1/examples/tasks` | 发布异步任务；需要 Redis |
 
-中间件链：`TraceLogger → Recovery → Timeout → CORS → RateLimit`（仅当 `RATE_LIMIT_PER_MINUTE > 0` 时启用限流）。
+中间件链：`TraceLogger → Locale → Recovery → Timeout → CORS → RateLimit`（仅当 `RATE_LIMIT_PER_MINUTE > 0` 时启用限流）。
 
 ### 响应信封
 
@@ -148,7 +149,7 @@ git switch examples/transactions
 
 全部配置来自环境变量，由 `config.Load()` 一次性读取并带默认值。`config.LoadEnv` 加载 `cmd/<进程>/.env`，回退到仓库根目录 `.env`。
 
-`config/types.go` 把配置分为 `Server`、`Postgres`、`Redis`、`Auth`、`Cors`、`Log`、`RateLimit` 七组。**Redis 与 JWT 均为可选**：未配置时相关路由不注册、`/health` 上报 `not_configured`，其余功能照常工作。完整变量表见 `.env.example`。
+`config/types.go` 把配置分为 `Server`、`Postgres`、`Redis`、`Auth`、`Cors`、`Log`、`RateLimit`、`I18n` 八组。**Redis 与 JWT 均为可选**：未配置时相关路由不注册、`/health` 上报 `not_configured`，其余功能照常工作。完整变量表见 `.env.example`。
 
 ## 工程化
 

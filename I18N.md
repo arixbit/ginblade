@@ -1,20 +1,10 @@
 # Internationalization (i18n) Guide
 
-GinBlade does not ship with built-in internationalization. Every user-facing
-message is hard-coded English and identical for all requests. This document is
-for developers who want the API to return messages in the requester's language,
-and shows how to add that without breaking the existing layering or the API
-contract.
-
-## Current State
-
-- `pkg/response/response.go` — `messageFor(reason)` is an English-only `switch`
-  keyed by the errcode reason.
-- `pkg/validator/validator.go` — `HandleValidatorError` is also hard-coded
-  (`%s is required`, etc.); it is the exit point for field-validation messages.
-- `internal/errcode` — `Error` holds only `code` + `reason`, with no locale
-  dimension.
-- No middleware reads the request language.
+This branch ships working i18n for API messages: `msg` in the response envelope
+follows the requester's language, while everything else in the API contract
+stays the same. (`main` has no i18n; this branch is the runnable reference.)
+This guide explains how it works, where the message files live and why, and how
+to add languages and messages.
 
 ## Core Principle: locale lives in the message layer, not in errcode
 
@@ -32,125 +22,114 @@ Therefore:
 Separating contract from copy is what lets you add i18n without touching the
 existing API surface.
 
-## Integration Steps
+## How It Works
 
-The snippets below show the recommended shape, not complete drop-in code.
-
-### 1. Add a `pkg/i18n` package
-
-Holds the translation table and lookup logic. Keep it a pure function with no
-`gin` dependency, so it is trivial to unit-test.
-
-```go
-package i18n
-
-type Translator struct {
-    defaultLocale string
-    messages    map[string]map[string]string // locale -> reason -> text
-    fieldMsgs   map[string]map[string]string // locale -> validator tag -> template
-}
-
-func New(defaultLocale string, messages, fieldMsgs map[string]map[string]string) *Translator { /* ... */ }
-
-// Translate resolves an errcode reason to localized copy.
-// Missing locale falls back to default; missing key falls back to the reason itself.
-func (t *Translator) Translate(locale, reason string) string { /* ... */ }
-
-// TranslateField resolves a validator tag (required/min/max) and fills the field/param.
-func (t *Translator) TranslateField(locale, field, tag, param string) string { /* ... */ }
+```
+request ─▶ Locale middleware ─▶ c.Set("localizer", tr.Localizer(?lang, Accept-Language))
+                                        │
+handler/middleware error ─▶ pkg/response ─▶ localizer.Error(reason)          ─▶ msg
+validation error         ─▶ pkg/validator ─▶ localizer.Validation(tag, ...) ─▶ msg
 ```
 
-Store copy in in-package `map`s rather than external JSON files or a `go-i18n`
-dependency. At skeleton scale a map is the most direct option — adding a
-language is just adding a map. Upgrade to external files later, when non-engineers
-need to maintain copy; the `Translator` interface stays the same.
+| Piece | Role |
+|---|---|
+| `internal/locales/` | The catalogs (`en.json`, `zh-CN.json`), embedded with `//go:embed` |
+| `pkg/i18n` | Loads catalogs from any `fs.FS`, matches locales, looks up messages; no Gin |
+| `internal/middleware/locale.go` | Resolves the request locale and stores a `Localizer` |
+| `pkg/response`, `pkg/validator` | Read the `Localizer` to fill `msg` |
+| `internal/bootstrap` | `i18n.New(locales.FS, cfg.I18n.DefaultLocale)` → `Registry.I18n` |
 
-### 2. Add `internal/middleware/locale.go`
+`Locale` is mounted right after `TraceLogger`, so errors written by `Recovery`,
+`RateLimit`, and `BearerAuth` are localized too. Handlers never see the locale.
 
-Resolve the request language and stash it on the `gin.Context`, mirroring
-`TraceLogger`.
+## Where the Catalogs Live, and Why
 
-```go
-func Locale(defaultLocale string) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        loc := c.Query("lang") // 1. query (easy to switch during debugging)
-        if loc == "" {
-            loc = parseAcceptLanguage(c.GetHeader("Accept-Language"), defaultLocale) // 2. header
-        }
-        if loc == "" {
-            loc = defaultLocale // 3. fallback
-        }
-        c.Set("locale", loc)
-        c.Next()
-    }
-}
-```
+The JSON files sit in `internal/locales/` and are embedded by `locales.go` in
+the same directory. Three constraints lead there:
 
-Resolution priority: `?lang=` query > `Accept-Language` header > configured
-default. The query param is convenient for manual switching during development;
-`Accept-Language` is the natural source from browsers and clients in production.
-For `parseAcceptLanguage`, `golang.org/x/text/language` matches tags with
-fallback cleanly, or hand-roll a simple matcher for a small fixed locale set.
+1. **`//go:embed` cannot reach parent directories** (`../locales/*.json` is an
+   invalid pattern), so the package that embeds the files must contain them.
+2. **Production images contain only binaries.** The `Dockerfile` copies `/out/`
+   and GoReleaser archives only `LICENSE` and `README.md`. Embedding means no
+   build, deploy, or working-directory changes.
+3. **The catalog keys are this app's contract**, so the files belong under
+   `internal/` (next to `internal/errcode`), while the reusable mechanism lives
+   in `pkg/i18n` — the same split as `pkg/response` + `internal/errcode`.
 
-Mount it after `TraceLogger` and before business handlers — same per-request
-context slot pattern as `trace_id`.
+A root-level `locales/` would need either a Go package at the module root (making
+the copy part of the module's public API) or runtime file loading. `pkg/i18n`
+takes an `fs.FS`, so if you ever need to change copy without a redeploy, swap
+`locales.FS` for `os.DirFS(dir)` in bootstrap; nothing else changes.
 
-### 3. Modify `pkg/response/response.go`
+## Catalog Format
 
-Have `messageFor` read the locale from the context and look up copy through the
-`Translator`:
+One file per locale, named with a BCP 47 tag (`en.json`, `zh-CN.json`):
 
-```go
-func ErrorResponse(c *gin.Context, errorCode errcode.Error, tr *i18n.Translator) Response {
-    v, _ := c.Get("locale")
-    loc, _ := v.(string)
-    return Response{
-        Code:     errorCode.Code(),
-        Reason:   errorCode.Reason(), // unchanged: language-neutral contract
-        Message:  tr.Translate(loc, errorCode.Reason()),
-        Metadata: buildMetadata(c),
-    }
+```json
+{
+  "errors": {
+    "INVALID_PARAMS": "请求参数错误",
+    "default": "操作失败"
+  },
+  "validation": {
+    "required": "{field} 不能为空",
+    "min": "{field} 至少为 {param}",
+    "default": "{field} 格式不正确"
+  }
 }
 ```
 
-The `errcode` package, the `Error` struct, and `Reason()` are not touched.
+- `errors` is keyed by errcode **reason**, not numeric code: readable, and it
+  already is the stable contract.
+- `validation` is keyed by validator tag; `{field}` and `{param}` are named
+  placeholders, so translations can reorder them freely.
+- `default` in each section covers reasons and tags without their own entry.
 
-### 4. Modify `pkg/validator/validator.go`
+Lookup order: the key in the request locale → the key in the default locale →
+`default` in the request locale → `default` in the default locale → the key
+itself. With no `Locale` middleware on the route, `msg` is the bare reason.
 
-Give `HandleValidatorError` a locale and a `Translator`, routing through
-`TranslateField`. `response.BuildValidationErrorResponse` reads the locale off
-`c` and passes it through.
+## Locale Resolution
 
-### 5. Wire it in bootstrap
+Priority: `?lang=` query > `Accept-Language` header > `I18N_DEFAULT_LOCALE`
+(default `en`). Matching uses `golang.org/x/text/language`, so `q` weights are
+honored, `zh` matches `zh-CN`, `en-GB` matches `en`, and an
+unsupported first choice falls through to the next.
 
-- `internal/bootstrap/registry.go` — add an `I18N *i18n.Translator` field to
-  `Registry`.
-- `internal/bootstrap/api.go` — construct the `Translator` in `InitAPI` and
-  store it.
-- `internal/server.go` — inject the translator into the response/validator call
-  path, and register the `Locale` middleware on the global middleware chain.
+Note that `zh-TW` and `zh-HK` also match `zh-CN`, the closest available. To
+serve Traditional Chinese, add `zh-TW.json`.
 
-### 6. Configuration
+## Common Tasks
 
-Add to `config/types.go`:
-
-```go
-type I18nConfig struct {
-    DefaultLocale string   // e.g. "en"
-    Supported     []string // e.g. ["en","zh"]
-}
-```
-
-Add `I18n I18nConfig` to `Config`. The default locale comes from config, not a
-hard-coded constant.
+- **Add a language** — copy `en.json` to `<tag>.json` in `internal/locales/` and
+  translate the values. It is picked up automatically.
+- **Add a message for a new errcode** — add the reason under `errors` in
+  **every** catalog. Missing it in one file fails CI (see below).
+- **Change the default language** — set `I18N_DEFAULT_LOCALE`. Startup fails if
+  no catalog matches it.
 
 ## Testing
 
-- `pkg/i18n` — table-driven tests covering: hit, locale-missing falls back to
-  default, key-missing falls back to the reason itself.
-- locale middleware — cover all three sources: query, header, default.
-- `ErrorResponse` — given a locale, assert `msg` is the right language and
-  `reason` is unchanged.
+- `pkg/i18n` — table-driven tests on an in-memory `fstest.MapFS`: loading
+  errors, locale matching, and every fallback step.
+- `internal/locales` — loads the real catalogs and asserts **every file has
+  exactly the same keys as `en.json`**. A missing translation fails CI with
+  `zh-CN.json is missing [errors.QUEUE_ERROR]`, instead of silently falling back
+  in production.
+- `internal/middleware` — query, header, and default sources; `reason` never
+  changes.
+- `internal/server_test.go` — end to end through `NewServer`: a `zh-CN` request
+  with an empty body gets `msg: "name 不能为空"`.
+
+## Known Limits
+
+- The success `msg` stays `"success"`.
+- Binding errors that are not validation errors (malformed JSON) still return
+  Go's error text.
+- Field names in validation messages are the lowercased struct field names.
+- Changing copy requires a rebuild (see the `os.DirFS` swap above).
+- The worker does not localize. If tasks need it, carry the locale in the task
+  payload the way `trace_id` is carried.
 
 ## Anti-patterns
 
@@ -158,6 +137,6 @@ hard-coded constant.
   breaks the machine-readable contract.
 - **Translating inside each handler.** Inconsistent with the `trace_id` pattern;
   handlers should not know how locale was resolved.
-- **Reaching for `go-i18n` + JSON files on day one.** Copy volume is small at
-  skeleton scale; pulling in file I/O and an extra dependency prematurely adds
-  complexity for no gain.
+- **Reading catalogs from the working directory by default.** The image ships
+  only binaries; embed first, and switch to `os.DirFS` only when hot updates are
+  a real requirement.

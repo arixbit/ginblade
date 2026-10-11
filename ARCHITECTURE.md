@@ -67,7 +67,7 @@ config.LoadEnv → config.Load → bootstrap.InitRuntime → bootstrap.Init<Proc
 ```
 HTTP shell (Gin-coupled)
   handler      parse/validate request, call service, write response
-  middleware   trace, recovery, timeout, CORS, auth, rate limit
+  middleware   trace, locale, recovery, timeout, CORS, auth, rate limit
   router       route registration (skips optional modules when unconfigured)
 ───────────────────────────────────────────────────────────────
 Application core (framework-free)
@@ -78,9 +78,10 @@ Application core (framework-free)
   worker       Asynq server, handlers, trace middleware
   taskqueue    queue boundary wrapper
   errcode      business error codes
+  locales      embedded message catalogs (JSON)
 ───────────────────────────────────────────────────────────────
 Infrastructure (pkg/, reusable)
-  auth · cache · database · log · response · validator
+  auth · cache · database · i18n · log · response · validator
 ```
 
 Rules:
@@ -119,6 +120,7 @@ client
   │  X-Request-ID (optional)
   ▼
 TraceLogger   generate/forward trace id; audit log on completion
+Locale        pick msg language: ?lang= > Accept-Language > default
 Recovery      panic → errcode.InternalError response
 Timeout       attach context deadline (REQUEST_TIMEOUT)
 CORS          allow-list check, OPTIONS short-circuit
@@ -193,8 +195,8 @@ These do **not**:
 ```
 internal/service  internal/repository  internal/model
 internal/task     internal/taskqueue   internal/worker
-internal/bootstrap
-pkg/auth  pkg/cache  pkg/database  pkg/log  pkg/validator
+internal/bootstrap internal/locales
+pkg/auth  pkg/cache  pkg/database  pkg/i18n  pkg/log  pkg/validator
 ```
 
 Business rules, persistence, task processing, and infrastructure helpers are
