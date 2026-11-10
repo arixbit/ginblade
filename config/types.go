@@ -19,6 +19,9 @@ type ServerConfig struct {
 	GinMode        string
 	TrustedProxies []string
 	RequestTimeout time.Duration
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
+	IdleTimeout    time.Duration
 }
 
 // PostgresConfig holds database connection settings.

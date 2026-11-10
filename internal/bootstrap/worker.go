@@ -7,11 +7,11 @@ import (
 
 	"github.com/arixbit/ginblade/config"
 	"github.com/arixbit/ginblade/internal/taskqueue"
-	"github.com/arixbit/ginblade/pkg/cache"
-	"github.com/arixbit/ginblade/pkg/database"
 )
 
 // InitWorker initializes resources required by the async worker process.
+// Resources already opened are closed when a later step fails, because the
+// caller never receives a registry it can close.
 func InitWorker(cfg *config.Config) (*Registry, error) {
 	if cfg == nil {
 		return nil, errors.New("config is nil")
@@ -20,29 +20,32 @@ func InitWorker(cfg *config.Config) (*Registry, error) {
 		return nil, errors.New("redis address is required for worker")
 	}
 
-	cacheClient, err := cache.NewClient(cache.RedisConfig{
-		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.CacheDB,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init worker cache: %w", err)
-	}
-
-	var dbMgr *database.DBManager
-	if strings.TrimSpace(cfg.Postgres.DSN) != "" {
-		dbMgr, err = initDatabase(cfg)
+	reg := &Registry{Cfg: cfg}
+	var err error
+	defer func() {
 		if err != nil {
-			return nil, fmt.Errorf("init worker database: %w", err)
+			_ = reg.Close()
 		}
+	}()
+
+	cacheClient, err := openCache(cfg)
+	if err != nil {
+		err = fmt.Errorf("init worker cache: %w", err)
+		return nil, err
+	}
+	reg.Cache = cacheClient
+
+	if strings.TrimSpace(cfg.Postgres.DSN) != "" {
+		dbMgr, dbErr := openDatabase(cfg)
+		if dbErr != nil {
+			err = fmt.Errorf("init worker database: %w", dbErr)
+			return nil, err
+		}
+		reg.DB = dbMgr
 	}
 
 	queueClient := newAsynqClient(cfg)
-	return &Registry{
-		Cfg:         cfg,
-		DB:          dbMgr,
-		Cache:       cacheClient,
-		Queue:       taskqueue.NewQueue(queueClient),
-		queueClient: queueClient,
-	}, nil
+	reg.Queue = taskqueue.NewQueue(queueClient)
+	reg.queueClient = queueClient
+	return reg, nil
 }

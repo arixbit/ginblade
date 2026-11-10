@@ -163,5 +163,8 @@ func newHTTPServer(cfg *config.Config, engine *gin.Engine) *http.Server {
 		Addr:              cfg.Server.Port,
 		Handler:           engine,
 		ReadHeaderTimeout: cfg.Server.RequestTimeout,
+		ReadTimeout:       cfg.Server.ReadTimeout,
+		WriteTimeout:      cfg.Server.WriteTimeout,
+		IdleTimeout:       cfg.Server.IdleTimeout,
 	}
 }

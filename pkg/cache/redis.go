@@ -24,6 +24,11 @@ type Client struct {
 	rdb *redis.Client
 }
 
+// NewTestClient wraps an existing Redis client. It is intended for tests.
+func NewTestClient(rdb *redis.Client) *Client {
+	return &Client{rdb: rdb}
+}
+
 // NewClient creates and verifies a Redis client.
 func NewClient(cfg RedisConfig) (*Client, error) {
 	if strings.TrimSpace(cfg.Addr) == "" {
