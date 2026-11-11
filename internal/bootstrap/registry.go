@@ -50,6 +50,14 @@ func (r *Registry) Close() error {
 	return errors.Join(errs...)
 }
 
+// Open hooks are variables so tests can fail a later init step without a live
+// database or Redis. Production uses the defaults below.
+var (
+	openDatabase = initDatabase
+	openCache    = initCache
+	openAuth     = initAuth
+)
+
 func initDatabase(cfg *config.Config) (*database.DBManager, error) {
 	return database.Init(database.Config{
 		DSN:             cfg.Postgres.DSN,

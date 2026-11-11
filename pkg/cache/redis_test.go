@@ -2,9 +2,24 @@ package cache
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
+
+func TestNewTestClientClose(t *testing.T) {
+	rdb := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
+	client := NewTestClient(rdb)
+	if err := client.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	err := rdb.Ping(context.Background()).Err()
+	if err == nil || !strings.Contains(err.Error(), "client is closed") {
+		t.Fatalf("underlying client not closed: %v", err)
+	}
+}
 
 func TestNewClientEmptyAddr(t *testing.T) {
 	if _, err := NewClient(RedisConfig{Addr: "  "}); err == nil {

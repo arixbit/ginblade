@@ -79,6 +79,9 @@ func TestNewHTTPServer(t *testing.T) {
 		Server: config.ServerConfig{
 			Port:           ":9999",
 			RequestTimeout: 5 * time.Second,
+			ReadTimeout:    10 * time.Second,
+			WriteTimeout:   20 * time.Second,
+			IdleTimeout:    40 * time.Second,
 		},
 	}
 	srv := newHTTPServer(cfg, gin.New())
@@ -91,8 +94,46 @@ func TestNewHTTPServer(t *testing.T) {
 	if srv.ReadHeaderTimeout != 5*time.Second {
 		t.Fatalf("ReadHeaderTimeout = %v, want 5s", srv.ReadHeaderTimeout)
 	}
+	if srv.ReadTimeout != 10*time.Second {
+		t.Fatalf("ReadTimeout = %v, want 10s", srv.ReadTimeout)
+	}
+	if srv.WriteTimeout != 20*time.Second {
+		t.Fatalf("WriteTimeout = %v, want 20s", srv.WriteTimeout)
+	}
+	if srv.IdleTimeout != 40*time.Second {
+		t.Fatalf("IdleTimeout = %v, want 40s", srv.IdleTimeout)
+	}
 	if srv.Handler == nil {
 		t.Fatal("expected non-nil handler")
+	}
+}
+
+func TestNewHTTPServerUsesLoadedDefaults(t *testing.T) {
+	for _, key := range []string{
+		"REQUEST_TIMEOUT",
+		"SERVER_READ_TIMEOUT",
+		"SERVER_WRITE_TIMEOUT",
+		"SERVER_IDLE_TIMEOUT",
+	} {
+		t.Setenv(key, "")
+	}
+
+	cfg := config.Load()
+	srv := newHTTPServer(cfg, gin.New())
+	if srv.ReadTimeout != 60*time.Second {
+		t.Fatalf("ReadTimeout = %v, want 60s", srv.ReadTimeout)
+	}
+	if srv.WriteTimeout != 60*time.Second {
+		t.Fatalf("WriteTimeout = %v, want 60s", srv.WriteTimeout)
+	}
+	if srv.IdleTimeout != 120*time.Second {
+		t.Fatalf("IdleTimeout = %v, want 120s", srv.IdleTimeout)
+	}
+	if srv.ReadHeaderTimeout != cfg.Server.RequestTimeout {
+		t.Fatalf("ReadHeaderTimeout = %v, want %v", srv.ReadHeaderTimeout, cfg.Server.RequestTimeout)
+	}
+	if srv.WriteTimeout <= cfg.Server.RequestTimeout {
+		t.Fatalf("WriteTimeout %v must be greater than RequestTimeout %v", srv.WriteTimeout, cfg.Server.RequestTimeout)
 	}
 }
 

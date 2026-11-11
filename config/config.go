@@ -21,6 +21,11 @@ func Load() *Config {
 			GinMode:        ginMode,
 			TrustedProxies: parseCSV(os.Getenv("TRUSTED_PROXIES")),
 			RequestTimeout: durationEnv("REQUEST_TIMEOUT", 30*time.Second),
+			ReadTimeout:    durationEnv("SERVER_READ_TIMEOUT", 60*time.Second),
+			// WriteTimeout stays above the default request timeout so the
+			// timeout middleware can still write its response.
+			WriteTimeout: durationEnv("SERVER_WRITE_TIMEOUT", 60*time.Second),
+			IdleTimeout:  durationEnv("SERVER_IDLE_TIMEOUT", 120*time.Second),
 		},
 		Postgres: PostgresConfig{
 			DSN:             os.Getenv("POSTGRES"),

@@ -145,6 +145,9 @@ go run ./cmd/worker
 | `SERVER_PORT` | 否 | `:3000` | HTTP 监听地址 |
 | `GIN_MODE` | 否 | `release` | Gin 运行模式 |
 | `REQUEST_TIMEOUT` | 否 | `30s` | 请求超时（context 截止时间） |
+| `SERVER_READ_TIMEOUT` | 否 | `60s` | HTTP 服务器读超时（请求头与请求体） |
+| `SERVER_WRITE_TIMEOUT` | 否 | `60s` | HTTP 服务器写超时；默认大于 `REQUEST_TIMEOUT`，避免超时中间件写出响应前连接被断开 |
+| `SERVER_IDLE_TIMEOUT` | 否 | `120s` | Keep-Alive 空闲连接超时 |
 | `TRUSTED_PROXIES` | 否 | 空 | 可信代理列表（逗号分隔） |
 | `POSTGRES` | API 必需 | 空 | PostgreSQL DSN（如 `postgres://user:pass@127.0.0.1:5432/app?sslmode=disable`） |
 | `GORM_LOG_LEVEL` | 否 | `warn` | GORM 日志级别（silent/error/info/warn） |

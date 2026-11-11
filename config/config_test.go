@@ -28,6 +28,7 @@ func clearEnv(t *testing.T, keys ...string) {
 
 var allEnvKeys = []string{
 	"SERVER_PORT", "GIN_MODE", "TRUSTED_PROXIES", "REQUEST_TIMEOUT",
+	"SERVER_READ_TIMEOUT", "SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT",
 	"POSTGRES", "GORM_LOG_LEVEL", "DB_MAX_IDLE_CONNS", "DB_MAX_OPEN_CONNS",
 	"DB_CONN_MAX_LIFETIME", "DB_CONN_MAX_IDLE_TIME",
 	"REDIS_ADDR", "REDIS_PASSWORD", "REDIS_CACHE_DB", "REDIS_QUEUE_DB",
@@ -51,6 +52,18 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.Server.RequestTimeout != 30*time.Second {
 		t.Errorf("RequestTimeout = %v, want 30s", cfg.Server.RequestTimeout)
+	}
+	if cfg.Server.ReadTimeout != 60*time.Second {
+		t.Errorf("ReadTimeout = %v, want 60s", cfg.Server.ReadTimeout)
+	}
+	if cfg.Server.WriteTimeout != 60*time.Second {
+		t.Errorf("WriteTimeout = %v, want 60s", cfg.Server.WriteTimeout)
+	}
+	if cfg.Server.IdleTimeout != 120*time.Second {
+		t.Errorf("IdleTimeout = %v, want 120s", cfg.Server.IdleTimeout)
+	}
+	if cfg.Server.WriteTimeout <= cfg.Server.RequestTimeout {
+		t.Errorf("WriteTimeout %v must be greater than RequestTimeout %v", cfg.Server.WriteTimeout, cfg.Server.RequestTimeout)
 	}
 	if cfg.Postgres.MaxIdleConns != 15 {
 		t.Errorf("MaxIdleConns = %d, want 15", cfg.Postgres.MaxIdleConns)
@@ -91,6 +104,9 @@ func TestLoadFromEnv(t *testing.T) {
 	clearEnv(t, allEnvKeys...)
 	t.Setenv("SERVER_PORT", ":8080")
 	t.Setenv("REQUEST_TIMEOUT", "5s")
+	t.Setenv("SERVER_READ_TIMEOUT", "15s")
+	t.Setenv("SERVER_WRITE_TIMEOUT", "45s")
+	t.Setenv("SERVER_IDLE_TIMEOUT", "2m")
 	t.Setenv("DB_MAX_OPEN_CONNS", "10")
 	t.Setenv("REDIS_CACHE_DB", "3")
 	t.Setenv("REDIS_QUEUE_DB", "9")
@@ -110,6 +126,15 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.Server.RequestTimeout != 5*time.Second {
 		t.Errorf("RequestTimeout = %v, want 5s", cfg.Server.RequestTimeout)
+	}
+	if cfg.Server.ReadTimeout != 15*time.Second {
+		t.Errorf("ReadTimeout = %v, want 15s", cfg.Server.ReadTimeout)
+	}
+	if cfg.Server.WriteTimeout != 45*time.Second {
+		t.Errorf("WriteTimeout = %v, want 45s", cfg.Server.WriteTimeout)
+	}
+	if cfg.Server.IdleTimeout != 2*time.Minute {
+		t.Errorf("IdleTimeout = %v, want 2m", cfg.Server.IdleTimeout)
 	}
 	if cfg.Postgres.MaxOpenConns != 10 {
 		t.Errorf("MaxOpenConns = %d, want 10", cfg.Postgres.MaxOpenConns)
