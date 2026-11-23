@@ -91,3 +91,37 @@ func TestJWTManagerRejectsNonHS256(t *testing.T) {
 		t.Fatal("expected signing method validation error")
 	}
 }
+
+func TestJWTManagerRequiresExpiration(t *testing.T) {
+	manager, err := NewJWTManager(JWTConfig{Secret: "test-secret", Issuer: "ginblade"})
+	if err != nil {
+		t.Fatalf("NewJWTManager: %v", err)
+	}
+
+	// Default TTL should always attach an expiration claim.
+	token, err := manager.GenerateToken("account-1")
+	if err != nil {
+		t.Fatalf("GenerateToken: %v", err)
+	}
+	claims, err := manager.ParseToken(token)
+	if err != nil {
+		t.Fatalf("ParseToken: %v", err)
+	}
+	if claims.ExpiresAt == nil {
+		t.Fatal("expected non-nil ExpiresAt for default TTL")
+	}
+
+	// Tokens signed without an exp claim must be rejected.
+	noExpToken, err := manager.GenerateTokenWithClaims(Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject: "account-1",
+			Issuer:  "ginblade",
+		},
+	})
+	if err != nil {
+		t.Fatalf("GenerateTokenWithClaims: %v", err)
+	}
+	if _, err := manager.ParseToken(noExpToken); err == nil {
+		t.Fatal("expected error for token missing expiration claim")
+	}
+}

@@ -51,6 +51,9 @@ func Init(cfg Config) (*DBManager, error) {
 		return nil, fmt.Errorf("connect to postgres: %w", err)
 	}
 	if err := tunePool(primary, pool); err != nil {
+		if sqlDB, dbErr := primary.DB(); dbErr == nil {
+			_ = sqlDB.Close()
+		}
 		return nil, err
 	}
 

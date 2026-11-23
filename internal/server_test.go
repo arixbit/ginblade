@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
 	"github.com/arixbit/ginblade/config"
 	"github.com/arixbit/ginblade/internal/bootstrap"
@@ -201,5 +202,22 @@ func TestHTTPServerUsesConfigPort(t *testing.T) {
 	}
 	if srv.Handler == nil || srv.Handler == http.NotFoundHandler() {
 		t.Fatal("expected engine handler")
+	}
+}
+
+func TestNewServerStopsRateLimiterOnEngineError(t *testing.T) {
+	reg := &bootstrap.Registry{
+		Cfg: &config.Config{
+			Server: config.ServerConfig{
+				TrustedProxies: []string{"invalid-proxy-cidr"},
+			},
+			RateLimit: config.RateLimitConfig{
+				RequestsPerMinute: 60,
+			},
+		},
+		DB: database.NewTestManager(&gorm.DB{}),
+	}
+	if _, err := NewServer(reg); err == nil {
+		t.Fatal("expected error for invalid trusted proxy")
 	}
 }

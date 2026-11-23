@@ -1,14 +1,18 @@
 package response
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/arixbit/ginblade/internal/errcode"
 )
@@ -62,13 +66,56 @@ func TestErrorResponseWithoutTrace(t *testing.T) {
 
 func TestBuildValidationErrorResponse(t *testing.T) {
 	c, _ := newTestContext()
-	res := BuildValidationErrorResponse(c, errors.New("bad request"))
-	if res.Code != errcode.InvalidParams.Code() {
-		t.Fatalf("Code = %d, want %d", res.Code, errcode.InvalidParams.Code())
-	}
-	if res.Message != "bad request" {
-		t.Fatalf("Message = %q, want bad request", res.Message)
-	}
+
+	t.Run("generic error does not leak internal text", func(t *testing.T) {
+		res := BuildValidationErrorResponse(c, errors.New("internal parse failure: struct Foo"))
+		if res.Code != errcode.InvalidParams.Code() {
+			t.Fatalf("Code = %d, want %d", res.Code, errcode.InvalidParams.Code())
+		}
+		if res.Message != "invalid request parameters" {
+			t.Fatalf("Message = %q, want invalid request parameters", res.Message)
+		}
+	})
+
+	t.Run("nil error", func(t *testing.T) {
+		res := BuildValidationErrorResponse(c, nil)
+		if res.Message != "invalid request parameters" {
+			t.Fatalf("Message = %q, want invalid request parameters", res.Message)
+		}
+	})
+
+	t.Run("wrapped validation error", func(t *testing.T) {
+		type sample struct {
+			Name string `validate:"required"`
+		}
+		vErr := validator.New().Struct(sample{})
+		res := BuildValidationErrorResponse(c, fmt.Errorf("bind failed: %w", vErr))
+		if res.Message != "name is required" {
+			t.Fatalf("Message = %q, want name is required", res.Message)
+		}
+	})
+
+	t.Run("malformed json and eof", func(t *testing.T) {
+		var dst map[string]any
+		syntaxErr := json.Unmarshal([]byte(`{bad`), &dst)
+		for _, err := range []error{syntaxErr, io.EOF, io.ErrUnexpectedEOF} {
+			res := BuildValidationErrorResponse(c, err)
+			if res.Message != "malformed request body" {
+				t.Fatalf("Message(%v) = %q, want malformed request body", err, res.Message)
+			}
+		}
+	})
+
+	t.Run("json type mismatch omits Go struct name", func(t *testing.T) {
+		var dst struct {
+			Name string `json:"name"`
+		}
+		typeErr := json.Unmarshal([]byte(`{"name":123}`), &dst)
+		res := BuildValidationErrorResponse(c, typeErr)
+		if res.Message != "invalid value for name" {
+			t.Fatalf("Message = %q, want invalid value for name", res.Message)
+		}
+	})
 }
 
 func TestWriteSuccess(t *testing.T) {
@@ -113,6 +160,19 @@ func TestWriteErrorUnknownError(t *testing.T) {
 	}
 	if body.Code != errcode.InternalError.Code() {
 		t.Fatalf("Code = %d, want %d (internal)", body.Code, errcode.InternalError.Code())
+	}
+}
+
+func TestWriteErrorDeadlineExceeded(t *testing.T) {
+	c, w := newTestContext()
+	WriteError(c, fmt.Errorf("query: %w", context.DeadlineExceeded))
+
+	var body Response
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.Code != errcode.RequestTimeout.Code() {
+		t.Fatalf("Code = %d, want %d (request timeout)", body.Code, errcode.RequestTimeout.Code())
 	}
 }
 

@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,11 @@ import (
 
 	applog "github.com/arixbit/ginblade/pkg/log"
 )
+
+const redisPingTimeout = 5 * time.Second
+
+// ErrCacheMiss is returned by Get when a key does not exist in Redis.
+var ErrCacheMiss = errors.New("cache: key not found")
 
 // RedisConfig holds Redis connection settings.
 type RedisConfig struct {
@@ -41,7 +47,10 @@ func NewClient(cfg RedisConfig) (*Client, error) {
 		DB:       cfg.DB,
 	})
 
-	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), redisPingTimeout)
+	defer cancel()
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		_ = rdb.Close()
 		return nil, fmt.Errorf("connect to redis: %w", err)
 	}
 
@@ -76,14 +85,14 @@ func (c *Client) Close() error {
 	return c.rdb.Close()
 }
 
-// Get retrieves a string value by key.
+// Get retrieves a string value by key. Returns ErrCacheMiss when the key does not exist.
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	if c == nil || c.rdb == nil {
 		return "", fmt.Errorf("redis client is not configured")
 	}
 	val, err := c.rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return "", nil
+	if errors.Is(err, redis.Nil) {
+		return "", ErrCacheMiss
 	}
 	if err != nil {
 		return "", fmt.Errorf("redis get %q: %w", key, err)

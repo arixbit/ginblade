@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/arixbit/ginblade/internal/errcode"
@@ -47,13 +49,17 @@ func (h *AuthHandler) CreateToken(c *gin.Context) {
 
 	var req CreateTokenReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(200, response.BuildValidationErrorResponse(c, err))
+		response.WriteValidationError(c, err)
 		return
 	}
 
 	token, err := h.manager.GenerateToken(req.Subject)
 	if err != nil {
-		response.WriteError(c, errcode.InvalidParams)
+		if errors.Is(err, auth.ErrMissingSubject) {
+			response.WriteError(c, errcode.InvalidParams)
+			return
+		}
+		response.WriteError(c, errcode.InternalError)
 		return
 	}
 

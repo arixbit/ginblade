@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,8 @@ import (
 
 	applog "github.com/arixbit/ginblade/pkg/log"
 )
+
+const maxTraceIDLen = 128
 
 // TraceLogger attaches a trace ID to each request and optionally logs request lifecycle fields.
 func TraceLogger(auditEnabled bool, auditExcludes []string) gin.HandlerFunc {
@@ -21,7 +24,7 @@ func TraceLogger(auditEnabled bool, auditExcludes []string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		start := time.Now()
-		traceID := c.GetHeader("X-Request-ID")
+		traceID := sanitizeTraceID(c.GetHeader("X-Request-ID"))
 		if traceID == "" {
 			traceID = uuid.NewString()
 		}
@@ -45,4 +48,22 @@ func TraceLogger(auditEnabled bool, auditExcludes []string) gin.HandlerFunc {
 			zap.String("client_ip", c.ClientIP()),
 		)
 	}
+}
+
+// sanitizeTraceID validates client-supplied request IDs to prevent header/log injection
+// and unbounded payload growth. Invalid values return empty so a new UUID is generated.
+func sanitizeTraceID(raw string) string {
+	id := strings.TrimSpace(raw)
+	if id == "" || len(id) > maxTraceIDLen {
+		return ""
+	}
+	for i := 0; i < len(id); i++ {
+		ch := id[i]
+		isAlphaNum := (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')
+		isAllowedPunct := ch == '-' || ch == '_' || ch == '.' || ch == ':' || ch == '/'
+		if !isAlphaNum && !isAllowedPunct {
+			return ""
+		}
+	}
+	return id
 }

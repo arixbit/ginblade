@@ -44,9 +44,10 @@ type RedisConfig struct {
 
 // AuthConfig holds JWT authentication settings.
 type AuthConfig struct {
-	JWTSecret string
-	JWTIssuer string
-	JWTTTL    time.Duration
+	JWTSecret      string
+	JWTIssuer      string
+	JWTTTL         time.Duration
+	AllowDemoToken bool
 }
 
 // CorsConfig holds allowed browser origins.

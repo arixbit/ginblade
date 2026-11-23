@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -15,16 +16,24 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	config.LoadEnv("cmd/worker/.env")
 	cfg := config.Load()
 	if err := bootstrap.InitRuntime(cfg, "worker"); err != nil {
-		panic(fmt.Sprintf("init runtime: %v", err))
+		fmt.Fprintf(os.Stderr, "init runtime: %v\n", err)
+		return err
 	}
 	defer func() { _ = applog.Sync() }()
 
 	registry, err := bootstrap.InitWorker(cfg)
 	if err != nil {
-		applog.L().Fatal("initialize worker", zap.Error(err))
+		applog.L().Error("initialize worker", zap.Error(err))
+		return err
 	}
 	defer func() {
 		if err := registry.Close(); err != nil {
@@ -34,7 +43,8 @@ func main() {
 
 	worker, err := app.NewWorker(registry)
 	if err != nil {
-		applog.L().Fatal("assemble worker", zap.Error(err))
+		applog.L().Error("assemble worker", zap.Error(err))
+		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -42,7 +52,9 @@ func main() {
 
 	applog.L().Info("worker started", zap.String("component", "asynq"))
 	if err := worker.Run(ctx); err != nil {
-		applog.L().Fatal("worker runtime error", zap.Error(err))
+		applog.L().Error("worker runtime error", zap.Error(err))
+		return err
 	}
 	applog.L().Info("worker shutdown completed")
+	return nil
 }

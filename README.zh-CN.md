@@ -159,9 +159,10 @@ go run ./cmd/worker
 | `REDIS_PASSWORD` | 否 | 空 | Redis 密码 |
 | `REDIS_CACHE_DB` | 否 | `0` | 缓存使用的 DB 编号 |
 | `REDIS_QUEUE_DB` | 否 | `6` | Asynq 队列使用的 DB 编号 |
-| `JWT_SECRET` | 否 | 空 | JWT 签名密钥；配置后启用 auth 示例路由 |
+| `JWT_SECRET` | 否 | 空 | JWT 签名密钥；配置后启用 Bearer 认证与 `/api/v1/auth/me` |
 | `JWT_ISSUER` | 否 | `ginblade` | JWT 签发者 |
 | `JWT_TTL` | 否 | `24h` | Token 有效期 |
+| `AUTH_DEMO_TOKEN_ENABLED` | 否 | `false` | 是否注册无鉴权的示例签发接口 `POST /api/v1/auth/token`（**仅限本地开发**） |
 | `CORS_ALLOW_ORIGINS` | 否 | 空 | 允许的浏览器来源（逗号分隔）；空 = 不发 CORS 头 |
 | `LOG_LEVEL` | 否 | `info` | 日志级别 |
 | `LOG_FORMAT` | 否 | `json` | `json` 或 `console` |
@@ -183,7 +184,7 @@ go run ./cmd/worker
 | 方法 | 路径 | 说明 | 认证 |
 |---|---|---|---|
 | GET | `/health` | 健康检查（真实 HTTP 状态码） | 无 |
-| POST | `/api/v1/auth/token` | 签发示例 JWT | 无 |
+| POST | `/api/v1/auth/token` | 签发示例 JWT（需 `JWT_SECRET` 且 `AUTH_DEMO_TOKEN_ENABLED=true`） | 无（仅开发） |
 | GET | `/api/v1/auth/me` | 返回当前 subject | Bearer（仅配置 JWT_SECRET 后注册） |
 | GET | `/api/v1/examples` | 分页列表 `?limit=&offset=` | 无 |
 | POST | `/api/v1/examples` | 创建示例（`{"name": "..."}`） | 无 |

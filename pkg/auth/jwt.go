@@ -36,15 +36,21 @@ var (
 	ErrMissingSubject = errors.New("jwt subject is required")
 )
 
+const defaultJWTTTL = 24 * time.Hour
+
 // NewJWTManager creates a JWTManager from config.
 func NewJWTManager(cfg JWTConfig) (*JWTManager, error) {
 	if strings.TrimSpace(cfg.Secret) == "" {
 		return nil, ErrMissingSecret
 	}
+	ttl := cfg.TTL
+	if ttl <= 0 {
+		ttl = defaultJWTTTL
+	}
 	return &JWTManager{
 		secret: []byte(cfg.Secret),
 		issuer: strings.TrimSpace(cfg.Issuer),
-		ttl:    cfg.TTL,
+		ttl:    ttl,
 		now:    time.Now,
 	}, nil
 }
@@ -97,6 +103,7 @@ func (m *JWTManager) ParseToken(tokenString string) (*Claims, error) {
 
 	options := []jwt.ParserOption{
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
 		jwt.WithTimeFunc(func() time.Time {
 			return m.now().UTC()
 		}),

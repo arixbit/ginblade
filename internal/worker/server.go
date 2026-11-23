@@ -35,19 +35,34 @@ func NewServer(redisOpt asynq.RedisClientOpt) *asynq.Server {
 	})
 }
 
+const (
+	exampleRetryBaseDelay = 5 * time.Second
+	exampleRetryMaxDelay  = time.Hour
+	exampleRetryMaxShift  = 10 // 5s * 2^10 = 5120s > 1h
+)
+
 // exampleRetryDelay returns the backoff delay for a failed task: 5s × 2^n,
 // capped at one hour. It is a named function so it can be unit tested.
 func exampleRetryDelay(n int, e error, t *asynq.Task) time.Duration {
-	delay := time.Duration(1<<uint(n)) * 5 * time.Second
-	if delay > time.Hour {
-		delay = time.Hour
+	var delay time.Duration
+	switch {
+	case n < 0:
+		delay = exampleRetryBaseDelay
+	case n >= exampleRetryMaxShift:
+		delay = exampleRetryMaxDelay
+	default:
+		delay = min(time.Duration(1<<uint(n))*exampleRetryBaseDelay, exampleRetryMaxDelay)
 	}
 	logger := applog.L()
-	if traceID := task.TraceIDFromPayload(t.Payload()); traceID != "" {
-		logger = logger.With(zap.String("trace_id", traceID))
+	taskType := ""
+	if t != nil {
+		taskType = t.Type()
+		if traceID := task.TraceIDFromPayload(t.Payload()); traceID != "" {
+			logger = logger.With(zap.String("trace_id", traceID))
+		}
 	}
 	logger.Warn("asynq task will retry",
-		zap.String("task", t.Type()),
+		zap.String("task", taskType),
 		zap.Int("attempt", n+1),
 		zap.Duration("retry_after", delay),
 		zap.Error(e),

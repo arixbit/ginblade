@@ -18,17 +18,34 @@ func CORS(allowOrigins []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
+		if len(allowed) > 0 {
+			c.Writer.Header().Add("Vary", "Origin")
+		}
+
 		origin := strings.TrimSpace(c.GetHeader("Origin"))
-		if origin != "" && containsOrigin(allowed, origin) {
+		originAllowed := origin != "" && containsOrigin(allowed, origin)
+		isPreflight := c.Request.Method == http.MethodOptions &&
+			origin != "" &&
+			strings.TrimSpace(c.GetHeader("Access-Control-Request-Method")) != ""
+
+		if isPreflight {
+			c.Writer.Header().Add("Vary", "Access-Control-Request-Method")
+			c.Writer.Header().Add("Vary", "Access-Control-Request-Headers")
+		}
+
+		if originAllowed {
 			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Vary", "Origin")
 			c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
 			c.Header("Access-Control-Allow-Headers", "Origin,Content-Type,Accept,Authorization,X-Request-ID")
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 
-		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
+		if isPreflight {
+			if originAllowed {
+				c.AbortWithStatus(http.StatusNoContent)
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 			return
 		}
 		c.Next()
