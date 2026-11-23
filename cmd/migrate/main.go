@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,10 +17,17 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	config.LoadEnv("cmd/migrate/.env")
 	cfg := config.Load()
 	if err := bootstrap.InitRuntime(cfg, "migrate"); err != nil {
-		panic(fmt.Sprintf("init runtime: %v", err))
+		fmt.Fprintf(os.Stderr, "init runtime: %v\n", err)
+		return err
 	}
 	defer func() { _ = applog.Sync() }()
 
@@ -31,7 +40,8 @@ func main() {
 		ConnMaxIdleTime: cfg.Postgres.ConnMaxIdleTime,
 	})
 	if err != nil {
-		applog.L().Fatal("initialize database", zap.Error(err))
+		applog.L().Error("initialize database", zap.Error(err))
+		return err
 	}
 	defer func() {
 		if err := dbMgr.Close(); err != nil {
@@ -39,13 +49,17 @@ func main() {
 		}
 	}()
 	if dbMgr.DB() == nil {
-		applog.L().Fatal("database is not configured")
+		err := errors.New("database is not configured")
+		applog.L().Error("database is not configured")
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := dbMgr.DB().WithContext(ctx).AutoMigrate(&model.Example{}); err != nil {
-		applog.L().Fatal("run migrations", zap.Error(err))
+		applog.L().Error("run migrations", zap.Error(err))
+		return err
 	}
 	applog.L().Info("migrations completed")
+	return nil
 }

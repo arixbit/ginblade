@@ -56,9 +56,18 @@ func TestRetryDelayFuncBackoff(t *testing.T) {
 }
 
 func TestRetryDelayFuncCapsAtHour(t *testing.T) {
-	got := exampleRetryDelay(30, errors.New("boom"), &asynq.Task{})
-	if got != time.Hour {
-		t.Fatalf("delay(30) = %v, want 1h cap", got)
+	for _, n := range []int{10, 30, 31, 63, 100} {
+		got := exampleRetryDelay(n, errors.New("boom"), &asynq.Task{})
+		if got != time.Hour {
+			t.Fatalf("delay(%d) = %v, want 1h cap", n, got)
+		}
+	}
+}
+
+func TestRetryDelayFuncNegativeAttemptAndNilTask(t *testing.T) {
+	got := exampleRetryDelay(-1, errors.New("boom"), nil)
+	if got != 5*time.Second {
+		t.Fatalf("delay(-1) = %v, want 5s", got)
 	}
 }
 

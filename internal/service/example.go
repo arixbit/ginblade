@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
@@ -48,6 +49,10 @@ type CreateExampleReq struct {
 func (s *ExampleService) Create(ctx context.Context, req *CreateExampleReq) (*model.Example, error) {
 	example := model.Example{Name: req.Name}
 	if err := s.repo.Create(ctx, &example); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			applog.FromContext(ctx).Warn("create example timed out", zap.Error(err))
+			return nil, errcode.RequestTimeout
+		}
 		applog.FromContext(ctx).Error("failed to create example", zap.Error(err))
 		return nil, errcode.DatabaseError
 	}
@@ -76,6 +81,10 @@ func (s *ExampleService) EnqueueTask(ctx context.Context, req *EnqueueExampleTas
 		return nil, errcode.QueueError
 	}
 	if _, err := s.queue.Enqueue(ctx, t); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			applog.FromContext(ctx).Warn("enqueue example task timed out", zap.Error(err))
+			return nil, errcode.RequestTimeout
+		}
 		applog.FromContext(ctx).Error("failed to enqueue example task", zap.Error(err))
 		return nil, errcode.QueueError
 	}
@@ -101,6 +110,10 @@ func (s *ExampleService) List(ctx context.Context, req *ListExamplesReq) (*ListE
 	}
 	examples, total, err := s.repo.List(ctx, req.Limit, req.Offset)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			applog.FromContext(ctx).Warn("list examples timed out", zap.Error(err))
+			return nil, errcode.RequestTimeout
+		}
 		applog.FromContext(ctx).Error("failed to list examples", zap.Error(err))
 		return nil, errcode.DatabaseError
 	}

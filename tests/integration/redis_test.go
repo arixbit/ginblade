@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -48,8 +49,8 @@ func TestRedisCacheIntegration(t *testing.T) {
 	})
 
 	missing, err := client.Get(ctx, prefix+"missing")
-	if err != nil {
-		t.Fatalf("get missing redis key: %v", err)
+	if !errors.Is(err, cache.ErrCacheMiss) {
+		t.Fatalf("get missing redis key err = %v, want cache.ErrCacheMiss", err)
 	}
 	if missing != "" {
 		t.Fatalf("missing redis value = %q, want empty", missing)
@@ -62,6 +63,7 @@ func TestRedisCacheIntegration(t *testing.T) {
 	}{
 		{name: "persistent", value: "without-expiration", ttl: 0},
 		{name: "expiring", value: "with-expiration", ttl: 30 * time.Second},
+		{name: "empty", value: "", ttl: 30 * time.Second},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

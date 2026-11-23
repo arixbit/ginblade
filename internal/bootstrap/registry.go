@@ -6,12 +6,14 @@ import (
 	"strings"
 
 	"github.com/hibiken/asynq"
+	"go.uber.org/zap"
 
 	"github.com/arixbit/ginblade/config"
 	"github.com/arixbit/ginblade/internal/taskqueue"
 	"github.com/arixbit/ginblade/pkg/auth"
 	"github.com/arixbit/ginblade/pkg/cache"
 	"github.com/arixbit/ginblade/pkg/database"
+	applog "github.com/arixbit/ginblade/pkg/log"
 )
 
 // Registry holds shared runtime resources initialized at process startup.
@@ -80,9 +82,17 @@ func initCache(cfg *config.Config) (*cache.Client, error) {
 	})
 }
 
+const minRecommendedJWTSecretLen = 32
+
 func initAuth(cfg *config.Config) (*auth.JWTManager, error) {
 	if strings.TrimSpace(cfg.Auth.JWTSecret) == "" {
 		return nil, nil
+	}
+	if len(cfg.Auth.JWTSecret) < minRecommendedJWTSecretLen {
+		applog.L().Warn("jwt secret is shorter than recommended length",
+			zap.Int("length", len(cfg.Auth.JWTSecret)),
+			zap.Int("recommended_min", minRecommendedJWTSecretLen),
+		)
 	}
 	return auth.NewJWTManager(auth.JWTConfig{
 		Secret: cfg.Auth.JWTSecret,

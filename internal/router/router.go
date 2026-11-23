@@ -8,9 +8,10 @@ import (
 
 // Dependencies collects handlers and middleware needed during route registration.
 type Dependencies struct {
-	Auth         *handler.AuthHandler
-	AuthRequired gin.HandlerFunc
-	Example      *handler.ExampleHandler
+	Auth           *handler.AuthHandler
+	AuthRequired   gin.HandlerFunc
+	AllowDemoToken bool
+	Example        *handler.ExampleHandler
 }
 
 // RegisterRoutes registers API routes under the given router group.
@@ -24,9 +25,14 @@ func registerAuthRoutes(r *gin.RouterGroup, deps Dependencies) {
 	if deps.Auth == nil {
 		return
 	}
+	if !deps.AllowDemoToken && deps.AuthRequired == nil {
+		return
+	}
 
 	authRoutes := r.Group("/auth")
-	authRoutes.POST("/token", deps.Auth.CreateToken)
+	if deps.AllowDemoToken {
+		authRoutes.POST("/token", deps.Auth.CreateToken)
+	}
 	if deps.AuthRequired != nil {
 		authRoutes.GET("/me", deps.AuthRequired, deps.Auth.Me)
 	}

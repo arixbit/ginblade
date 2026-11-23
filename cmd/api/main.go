@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -29,16 +30,24 @@ type httpServerLifecycle interface {
 }
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	config.LoadEnv("cmd/api/.env")
 	cfg := config.Load()
 	if err := bootstrap.InitRuntime(cfg, "api"); err != nil {
-		panic(fmt.Sprintf("init runtime: %v", err))
+		fmt.Fprintf(os.Stderr, "init runtime: %v\n", err)
+		return err
 	}
 	defer func() { _ = applog.Sync() }()
 
 	registry, err := bootstrap.InitAPI(cfg)
 	if err != nil {
-		applog.L().Fatal("initialize application", zap.Error(err))
+		applog.L().Error("initialize application", zap.Error(err))
+		return err
 	}
 	defer func() {
 		if err := registry.Close(); err != nil {
@@ -48,7 +57,8 @@ func main() {
 
 	server, err := app.NewServer(registry)
 	if err != nil {
-		applog.L().Fatal("assemble http server", zap.Error(err))
+		applog.L().Error("assemble http server", zap.Error(err))
+		return err
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -64,15 +74,18 @@ func main() {
 	select {
 	case err := <-errCh:
 		if err != nil {
-			applog.L().Fatal("web server error", zap.Error(err))
+			applog.L().Error("web server error", zap.Error(err))
+			return err
 		}
-		return
+		return nil
 	case <-ctx.Done():
 	}
 
 	if _, err := shutdownWebServer(server, errCh, gracefulShutdownTimeout, serverExitWaitTimeout); err != nil {
 		applog.L().Error("web server shutdown failed", zap.Error(err))
+		return err
 	}
+	return nil
 }
 
 func shutdownWebServer(server httpServerLifecycle, errCh <-chan error, shutdownTimeout, waitTimeout time.Duration) (bool, error) {

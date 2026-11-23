@@ -87,7 +87,7 @@ go run ./cmd/migrate
 - Redis is optional for the API process. When configured, it enables cache and queue publishing.
 - The worker process requires `REDIS_ADDR`.
 - Postgres is optional for the worker process.
-- JWT auth example routes are enabled when `JWT_SECRET` is configured.
+- JWT auth routes are enabled when `JWT_SECRET` is configured. The unauthenticated demo issuer `POST /api/v1/auth/token` is disabled by default and requires `AUTH_DEMO_TOKEN_ENABLED=true` (local development only).
 
 ## Example API
 

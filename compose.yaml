@@ -8,6 +8,8 @@ x-app: &app
     REDIS_CACHE_DB: 0
     REDIS_QUEUE_DB: 6
     JWT_SECRET: local-development-only
+    # Local development only; never enable in production.
+    AUTH_DEMO_TOKEN_ENABLED: "true"
     SERVER_PORT: :3000
 
 services:

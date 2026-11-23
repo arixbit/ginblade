@@ -54,6 +54,9 @@ func NewServer(reg *bootstrap.Registry) (*Server, error) {
 	handlers := newHTTPHandlers(reg)
 	engine, err := newEngine(reg, handlers, rl)
 	if err != nil {
+		if rl != nil {
+			rl.Stop()
+		}
 		return nil, err
 	}
 
@@ -148,9 +151,10 @@ func newEngine(reg *bootstrap.Registry, handlers *HTTPHandlers, rl *middleware.I
 		authRequired = middleware.BearerAuth(reg.Auth)
 	}
 	if err := router.RegisterRoutes(api, router.Dependencies{
-		Auth:         handlers.Auth,
-		AuthRequired: authRequired,
-		Example:      handlers.Example,
+		Auth:           handlers.Auth,
+		AuthRequired:   authRequired,
+		AllowDemoToken: reg.Cfg.Auth.AllowDemoToken,
+		Example:        handlers.Example,
 	}); err != nil {
 		return nil, err
 	}

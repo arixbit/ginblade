@@ -191,3 +191,48 @@ func TestListDatabaseError(t *testing.T) {
 		t.Fatalf("expected database error code, got %d", ec.Code())
 	}
 }
+
+func TestExampleServiceDeadlineExceededReturnsRequestTimeout(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
+		repo := &mockExampleRepo{
+			createFunc: func(_ context.Context, _ *model.Example) error {
+				return context.DeadlineExceeded
+			},
+		}
+		svc := NewExampleService(repo)
+		_, err := svc.Create(context.Background(), &CreateExampleReq{Name: "test"})
+		var ec errcode.Error
+		if !errors.As(err, &ec) || ec.Code() != errcode.RequestTimeout.Code() {
+			t.Fatalf("Create err = %v, want errcode.RequestTimeout", err)
+		}
+	})
+
+	t.Run("list", func(t *testing.T) {
+		repo := &mockExampleRepo{
+			listFunc: func(_ context.Context, _, _ int) ([]model.Example, int64, error) {
+				return nil, 0, context.DeadlineExceeded
+			},
+		}
+		svc := NewExampleService(repo)
+		_, err := svc.List(context.Background(), &ListExamplesReq{Limit: 10})
+		var ec errcode.Error
+		if !errors.As(err, &ec) || ec.Code() != errcode.RequestTimeout.Code() {
+			t.Fatalf("List err = %v, want errcode.RequestTimeout", err)
+		}
+	})
+
+	t.Run("enqueue", func(t *testing.T) {
+		queue := &mockExampleQueue{
+			available: true,
+			enqueueFunc: func(_ context.Context, _ *asynq.Task, _ ...asynq.Option) (*asynq.TaskInfo, error) {
+				return nil, context.DeadlineExceeded
+			},
+		}
+		svc := NewExampleService(&mockExampleRepo{}, queue)
+		_, err := svc.EnqueueTask(context.Background(), &EnqueueExampleTaskReq{Name: "test"})
+		var ec errcode.Error
+		if !errors.As(err, &ec) || ec.Code() != errcode.RequestTimeout.Code() {
+			t.Fatalf("EnqueueTask err = %v, want errcode.RequestTimeout", err)
+		}
+	})
+}

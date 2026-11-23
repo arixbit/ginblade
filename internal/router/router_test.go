@@ -94,7 +94,7 @@ func TestRegisterRoutesExampleWithoutAuth(t *testing.T) {
 	}
 }
 
-func TestRegisterRoutesWithAuth(t *testing.T) {
+func TestRegisterRoutesWithAuthDefaultDisablesDemoToken(t *testing.T) {
 	mgr := newAuthHandler(t)
 	authHandler := handler.NewAuthHandler(mgr)
 
@@ -102,6 +102,30 @@ func TestRegisterRoutesWithAuth(t *testing.T) {
 		Auth:         authHandler,
 		AuthRequired: middleware.BearerAuth(mgr),
 		Example:      newExampleHandler(),
+	})
+
+	if _, ok := paths["POST /api/v1/auth/token"]; ok {
+		t.Error("demo token route should not be registered unless AllowDemoToken is true")
+	}
+	for _, p := range []string{
+		"GET /api/v1/auth/me",
+		"GET /api/v1/examples",
+	} {
+		if _, ok := paths[p]; !ok {
+			t.Errorf("missing route %s; got %v", p, keys(paths))
+		}
+	}
+}
+
+func TestRegisterRoutesWithAuthAndDemoToken(t *testing.T) {
+	mgr := newAuthHandler(t)
+	authHandler := handler.NewAuthHandler(mgr)
+
+	paths := routePaths(t, Dependencies{
+		Auth:           authHandler,
+		AuthRequired:   middleware.BearerAuth(mgr),
+		AllowDemoToken: true,
+		Example:        newExampleHandler(),
 	})
 
 	for _, p := range []string{
@@ -119,10 +143,10 @@ func TestRegisterRoutesAuthWithoutRequired(t *testing.T) {
 	mgr := newAuthHandler(t)
 	authHandler := handler.NewAuthHandler(mgr)
 
-	paths := routePaths(t, Dependencies{Auth: authHandler})
+	paths := routePaths(t, Dependencies{Auth: authHandler, AllowDemoToken: true})
 
 	if _, ok := paths["POST /api/v1/auth/token"]; !ok {
-		t.Error("token route should be registered")
+		t.Error("token route should be registered when AllowDemoToken is true")
 	}
 	if _, ok := paths["GET /api/v1/auth/me"]; ok {
 		t.Error("/auth/me should not be registered without AuthRequired")

@@ -32,7 +32,7 @@ var allEnvKeys = []string{
 	"POSTGRES", "GORM_LOG_LEVEL", "DB_MAX_IDLE_CONNS", "DB_MAX_OPEN_CONNS",
 	"DB_CONN_MAX_LIFETIME", "DB_CONN_MAX_IDLE_TIME",
 	"REDIS_ADDR", "REDIS_PASSWORD", "REDIS_CACHE_DB", "REDIS_QUEUE_DB",
-	"JWT_SECRET", "JWT_ISSUER", "JWT_TTL",
+	"JWT_SECRET", "JWT_ISSUER", "JWT_TTL", "AUTH_DEMO_TOKEN_ENABLED",
 	"CORS_ALLOW_ORIGINS",
 	"LOG_LEVEL", "LOG_FORMAT", "LOG_STACKTRACE_LEVEL",
 	"AUDIT_LOG_ENABLED", "AUDIT_LOG_EXCLUDE_PATHS",
@@ -86,6 +86,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Auth.JWTTTL != 24*time.Hour {
 		t.Errorf("JWTTTL = %v, want 24h", cfg.Auth.JWTTTL)
 	}
+	if cfg.Auth.AllowDemoToken {
+		t.Error("AllowDemoToken = true, want false by default")
+	}
 	if cfg.Log.Level != "info" || cfg.Log.Format != "json" {
 		t.Errorf("Log = %+v, want info/json", cfg.Log)
 	}
@@ -112,6 +115,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("REDIS_QUEUE_DB", "9")
 	t.Setenv("JWT_ISSUER", "my-service")
 	t.Setenv("JWT_TTL", "1h")
+	t.Setenv("AUTH_DEMO_TOKEN_ENABLED", "true")
 	t.Setenv("LOG_FORMAT", "console")
 	t.Setenv("AUDIT_LOG_ENABLED", "false")
 	t.Setenv("RATE_LIMIT_PER_MINUTE", "100")
@@ -142,8 +146,8 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.Redis.CacheDB != 3 || cfg.Redis.QueueDB != 9 {
 		t.Errorf("Redis DBs = %d/%d, want 3/9", cfg.Redis.CacheDB, cfg.Redis.QueueDB)
 	}
-	if cfg.Auth.JWTIssuer != "my-service" || cfg.Auth.JWTTTL != time.Hour {
-		t.Errorf("Auth = %+v, want my-service/1h", cfg.Auth)
+	if cfg.Auth.JWTIssuer != "my-service" || cfg.Auth.JWTTTL != time.Hour || !cfg.Auth.AllowDemoToken {
+		t.Errorf("Auth = %+v, want my-service/1h/AllowDemoToken=true", cfg.Auth)
 	}
 	if cfg.Log.Format != "console" || cfg.Log.AuditEnabled {
 		t.Errorf("Log = %+v, want console/false", cfg.Log)

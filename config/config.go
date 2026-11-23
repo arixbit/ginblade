@@ -42,9 +42,10 @@ func Load() *Config {
 			QueueDB:  intEnv("REDIS_QUEUE_DB", 6),
 		},
 		Auth: AuthConfig{
-			JWTSecret: os.Getenv("JWT_SECRET"),
-			JWTIssuer: getEnvOrDefault("JWT_ISSUER", "ginblade"),
-			JWTTTL:    durationEnv("JWT_TTL", 24*time.Hour),
+			JWTSecret:      os.Getenv("JWT_SECRET"),
+			JWTIssuer:      getEnvOrDefault("JWT_ISSUER", "ginblade"),
+			JWTTTL:         durationEnv("JWT_TTL", 24*time.Hour),
+			AllowDemoToken: boolEnv("AUTH_DEMO_TOKEN_ENABLED", false),
 		},
 		Cors: CorsConfig{
 			AllowOrigins: parseCSV(os.Getenv("CORS_ALLOW_ORIGINS")),
